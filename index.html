@@ -1,0 +1,4142 @@
+<!DOCTYPE html>
+<!--
+  CascadesModel0_12
+  Change log
+  - 0_0: Renamed app to CascadesModel0_0.
+  - 0_0: Added a global stack-order toggle so stacked τ figures can be grouped by cascade status or by correctness.
+  - 0_0: Added a τ summary panel for highest/lowest cascade and correctness regions.
+  - 0_0: Refactored stacked-ribbon rendering to share stack definitions across Tab 1, grid, N sweep, and q sweep.
+  - 0_0: Fixed Tab 1 tie-breaking in completed runs to use the seeded RNG instead of Math.random().
+  - 0_0: Extended resize redraws so q-sweep and grid ribbons stay in sync with the current stack mode and viewport.
+  - 0_0: Added hover-linked highlighting from τ summary cards and τ phase partitions into the ribbon and summary lines.
+  - 0_0: Reordered the outcome legends into a 2×2 layout: no-cascade incorrect, cascade incorrect; no-cascade correct, cascade correct.
+  - 0_0: Added a τ partition analysis panel based on the phase-shift thresholds τ = 1/d.
+  - 0_1: Added hover-linked highlighting from the phase analysis into the ribbon and summary lines, and reordered legends into the 2×2 no-cascade/cascade by incorrect/correct layout.
+  - 0_2: Removed the τ-specific superlatives so the analysis focuses on phase performance differences.
+  - 0_2: Expanded each τ phase row to report mean, min, max, and variance for both P(cascade) and P(correct) across sampled τ bins.
+  - 0_2: Added click-to-pin highlighting for τ phase rows so a hovered partition can stay highlighted until toggled off.
+  - 0_3: Restored the missing computeTauPartitions() helper so the τ phase panel populates again instead of throwing a ReferenceError.
+  - 0_4: Tightened the 2×2 outcome legend spacing and added matching color chips inside the hover tooltips.
+  - 0_4: Added a hover-scope toggle so the main τ figure can preview either a single τ bin or its entire phase partition.
+  - 0_4: Made click-to-pin available from the main τ figure as well as the phase rows.
+  - 0_4: Reordered Tab 1 into collapsible panels for parameters, demonstrations, the main figure, phase analysis, order parameters, and the event log.
+  - 0_5: Combined the cascade and accuracy order parameters into a single plot with a visuals toggle for phase-threshold guide lines.
+  - 0_5: Smoothed phase-hover behavior on the main τ figure by switching to a single hit layer, keeping the phase highlight stable while the hovered τ value updates within that phase.
+  - 0_5: Added a compact line legend and shared tooltip for the combined order-parameter plot.
+  - 0_6: Moved the combined order-parameter plot directly below the main τ stacked chart and above the phase analysis panel.
+  - 0_6: Added exact finite-horizon phase predictions, surfaced them in the phase tooltips and phase rows, and cached them for reuse.
+  - 0_6: Added a shared toggle for showing or hiding analytic phase predictions on both the stacked τ figure and the combined order-parameter plot.
+  - 0_7: Promoted the phase barrier m into the phase profiles and tooltips, with explanatory text tying it to the reachability-versus-reliability tradeoff behind the maximizing phase.
+  - 0_7: Reworked the figure visibility controls so simulated data, analytic phase profiles, and predicted phase cutoffs can each be toggled independently in both the stacked τ figure and the combined order-parameter plot.
+  - 0_7: Moved the τ sweep resolution control into the top parameter panel, added a 10001 option, and raised the default Tab 1 batch size to 1000.
+  - 0_8: Bundled the analytic phase profiles and phase-cutoff guides under one overlay control and decomposed correct cascades into P(cascade) × P(correct | cascade).
+  - 0_9: Simplified the phase panel around width/height/area, added phase-wise max/min badges to rows and hover text, and removed the longer explanatory note.
+  - 0_10: Reworked each phase row to render an actual width×height rectangle profile, with width = P(cascade), height = P(correct | cascade), and area = P(correct cascade).
+  - 0_11: Softened the phase profile graphic into a quiet silhouette next to the probability values, removing the width/height/area labeling and extra explanatory text.
+  - 0_12: Removed the silhouette explanation, restored the four-outcome breakdowns ahead of the summary probabilities, and reduced the rectangle cue to a bare inline shape without a background frame.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CascadesModel0_12</title>
+  <style>
+    :root{
+      --bg:#ffffff; --panel:#ffffff; --muted:#64748b; --text:#0f172a;
+      --accent:#60a5fa;
+      --good:#10b981; --bad:#ef4444;
+      --neutral:#4c1d95;
+      --amber:#f59e0b; --ring:#cbd5e1;
+      --ink-2:#1f2937; --ink-3:#334155; --ink-4:#94a3b8;
+      --soft:#f8fafc; --soft-2:#f1f5f9;
+      --a-teal:#22d3ee; --a-red:#f87171;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+      background:var(--bg);
+      color:var(--text)
+    }
+    header{padding:18px 20px 8px}
+    h1{margin:0;font-size:1.25rem;letter-spacing:.2px;color:var(--ink-2)}
+
+    .tabbar{
+      display:flex;
+      gap:8px;
+      margin:0 14px 6px;
+      border-bottom:1px solid var(--ring);
+      flex-wrap:wrap;
+    }
+    .tab-btn{
+      padding:8px 12px;
+      border:none;
+      background:transparent;
+      cursor:pointer;
+      font-size:.9rem;
+      color:var(--ink-3);
+      border-bottom:2px solid transparent;
+      border-radius:6px 6px 0 0;
+      transition:.15s background,.15s color,.15s border-color;
+    }
+    .tab-btn:hover{
+      background:var(--soft);
+      color:var(--ink-2);
+    }
+    .tab-btn.active{
+      color:var(--ink-2);
+      border-color:var(--accent);
+      background:#fff;
+    }
+    .tab-pane{display:none}
+    .tab-pane.active{display:block}
+
+    .wrap{
+      display:grid;
+      grid-template-columns:380px 1fr;
+      gap:14px;
+      padding:14px
+    }
+
+    #tab2Pane .wrap, #tab3Pane .wrap, #tabQPane .wrap{
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+      padding:14px;
+      align-items:stretch;
+    }
+
+    .card{
+      background:var(--panel);
+      border:1px solid var(--ring);
+      border-radius:14px;
+      padding:14px;
+      box-shadow:0 10px 24px rgba(0,0,0,.06)
+    }
+    .controls label{display:block;font-size:.85rem;color:var(--ink-3);margin-top:10px}
+    .row{display:flex;gap:8px;align-items:center}
+    input[type="number"],input[type="text"],textarea,select{
+      width:100%;
+      background:#fff;
+      color:var(--text);
+      border:1px solid var(--ring);
+      border-radius:10px;
+      padding:8px 10px;
+      outline:none
+    }
+    textarea{height:68px;resize:vertical}
+    .btnbar{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+    button{
+      background:#fff;
+      color:var(--ink-2);
+      border:1px solid var(--ring);
+      border-radius:10px;
+      padding:8px 10px;
+      cursor:pointer;
+      transition:.15s transform,.15s background,.15s border-color
+    }
+    button:hover{transform:translateY(-1px);border-color:var(--accent)}
+    button:disabled{opacity:.5;cursor:default;transform:none}
+
+    .grid{display:grid;grid-template-columns:1fr 420px;gap:14px}
+
+    .community{margin-bottom:12px}
+    .community h3{
+      margin:0 0 8px;
+      font-size:.95rem;
+      color:var(--ink-2);
+      font-weight:700;
+      display:flex;
+      justify-content:space-between;
+      align-items:center
+    }
+    .miniStats{
+      font-size:.8rem;
+      color:var(--ink-3);
+      display:flex;
+      gap:10px
+    }
+    .timeline{
+      position:relative;
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      padding:10px;
+      min-height:76px
+    }
+
+    .agent{
+      position:relative;
+      width:34px;height:34px;
+      border-radius:9px;
+      display:grid;
+      place-items:center;
+      font-weight:700;
+      border:1px solid var(--ring);
+      color:var(--ink-2);
+      background:#fff;
+      box-shadow:inset 0 0 0 3px #ffffff
+    }
+    .agent.signalA{background:linear-gradient(180deg, rgba(34,211,238,.22), rgba(34,211,238,.08))}
+    .agent.signalB{background:linear-gradient(180deg, rgba(248,113,113,.22), rgba(248,113,113,.08))}
+    .agent.A{border-width:3px;border-color:rgba(34,211,238,.9)}
+    .agent.B{border-width:3px;border-color:rgba(248,113,113,.9)}
+
+    .cascade-flag{
+      position:absolute;
+      top:-8px;
+      transform:translateY(-100%);
+      font-size:.75rem;
+      background:#fff;
+      border:1px solid var(--amber);
+      color:#92400e;
+      padding:4px 8px;
+      border-radius:999px
+    }
+
+    .legendRow{
+      font-size:.75rem;
+      color:var(--ink-3);
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap
+    }
+    .chip{display:inline-flex;align-items:center;gap:6px}
+    .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+
+    .log{
+      font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+      font-size:12.5px;
+      line-height:1.35;
+      height:220px;
+      overflow:auto;
+      padding:8px;
+      background:#fff;
+      border:1px solid var(--ring);
+      border-radius:10px
+    }
+
+    .runStat{
+      background:var(--soft);
+      border-radius:10px;
+      padding:8px 10px;
+      border:1px solid var(--ring)
+    }
+    .count{font-size:1.05rem;font-weight:600;color:var(--ink-2)}
+
+    .aggBox{
+      display:flex;
+      align-items:flex-start;
+      gap:10px;
+      padding:8px 0;
+      border-bottom:1px solid var(--soft-2)
+    }
+    .aggBox:last-child{border-bottom:none}
+    .aggBox h4{margin:0;font-size:.9rem;color:var(--ink-2)}
+
+    .toggle{
+      position:relative;
+      width:54px;
+      height:28px;
+      background:#fff;
+      border:1px solid var(--ring);
+      border-radius:999px;
+      display:inline-block;
+      vertical-align:middle
+    }
+    .toggle::after{
+      content:"";
+      position:absolute;
+      top:3px;left:3px;
+      width:22px;height:22px;
+      border-radius:50%;
+      background:var(--ring);
+      transition:transform .18s ease
+    }
+    input[type="checkbox"].switch{display:none}
+    input[type="checkbox"].switch:checked + .toggle::after{
+      transform:translateX(26px);
+      background:var(--accent)
+    }
+    input[type="checkbox"].switch:checked + .toggle{
+      border-color:var(--accent)
+    }
+
+    #gridPanel{
+      margin-top:10px;
+      font-size:.8rem;
+      color:var(--ink-3);
+    }
+    .grid-row{
+      display:grid;
+      gap:6px;
+      align-items:flex-start;
+      margin-bottom:6px;
+    }
+    .grid-row-header{
+      font-weight:600;
+      color:var(--ink-2);
+    }
+    .grid-label{
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      padding-right:4px;
+      white-space:nowrap;
+    }
+    .mini-svg{
+      border:1px solid var(--soft-2);
+      border-radius:8px;
+      background:#fff;
+      display:block;
+      width:100%;
+      height:240px;
+    }
+
+    #nPanel{
+      margin-top:10px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .nRow{
+      display:grid;
+      grid-template-columns: 70px 1fr;
+      gap:10px;
+      align-items:start;
+    }
+    .nLabel{
+      display:flex;
+      justify-content:flex-end;
+      padding-top:8px;
+      font-weight:600;
+      color:var(--ink-2);
+      white-space:nowrap;
+    }
+    .nSvg{
+      width:100%;
+      height:170px;
+      border:1px solid var(--soft-2);
+      border-radius:10px;
+      background:#fff;
+      display:block;
+    }
+
+    /* Tab 3 success plot */
+    #successPlot{
+      width:100%;
+      height:280px;
+      border:1px solid var(--soft-2);
+      border-radius:10px;
+      background:#fff;
+      display:block;
+      margin-top:10px;
+    }
+
+    /* Tab 1 order-parameter plot */
+    #orderPlot{
+      width:100%;
+      height:240px;
+      border:1px solid var(--soft-2);
+      border-radius:10px;
+      background:#fff;
+      display:block;
+    }
+    .line-legend{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:8px;color:var(--ink-3);font-size:.83rem}
+    .line-legend-chip{display:inline-flex;align-items:center;gap:8px}
+    .line-legend-chip.legend-off{opacity:.38}
+    .line-legend-swatch{width:18px;height:0;border-top-width:3px;border-top-style:solid;display:inline-block;border-radius:999px}
+    .line-legend-swatch.dashed{border-top-style:dashed;border-top-width:2px;opacity:.75}
+    .order-plot-controls{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+    .check-chip{display:inline-flex;align-items:center;gap:8px;color:var(--ink-3);font-size:.83rem}
+    .check-chip input{margin:0}
+
+    #ribbonTip{
+      position:fixed;
+      pointer-events:none;
+      display:none;
+      background:#ffffff;
+      border:1px solid var(--ring);
+      border-radius:8px;
+      padding:8px;
+      font-size:.8rem;
+      color:var(--ink-2);
+      box-shadow:0 6px 20px rgba(0,0,0,.12);
+      z-index:9999;
+    }
+
+    .controlCluster{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .stack-toggle{display:inline-flex;align-items:center;gap:6px;padding:4px;border:1px solid var(--ring);border-radius:12px;background:#fff}
+    .stack-toggle-btn{border:none;background:transparent;color:var(--ink-3);padding:6px 10px;border-radius:8px;font-size:.82rem;cursor:pointer}
+    .stack-toggle-btn:hover{transform:none;background:var(--soft)}
+    .stack-toggle-btn.active{background:var(--soft);color:var(--ink-2);font-weight:600}
+
+    .panel-stack{display:flex;flex-direction:column;gap:14px;padding:14px}
+    .collapsible-panel{padding:0;overflow:hidden}
+    .collapsible-panel > summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 14px;font-weight:700;color:var(--ink-2);background:linear-gradient(180deg,#fff,#f8fafc)}
+    .collapsible-panel > summary::-webkit-details-marker{display:none}
+    .collapsible-panel > summary::after{content:"▸";color:var(--ink-3);font-size:.95rem;transition:transform .16s ease}
+    .collapsible-panel[open] > summary::after{transform:rotate(90deg)}
+    .collapsible-panel[open] > summary{border-bottom:1px solid var(--soft-2)}
+    .panel-body{padding:14px}
+    .panel-body.tight{padding-top:10px}
+    .panel-sub{font-size:.78rem;font-weight:500;color:var(--ink-3)}
+    .tab1-split{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(320px,1fr);gap:14px;align-items:start}
+    .nested-card{box-shadow:none;background:var(--soft);border-color:var(--soft-2)}
+
+    .tau-phase-title{font-weight:700;color:var(--ink-2);margin-bottom:8px}
+    .tau-phase-note{font-size:.82rem;color:var(--ink-3);line-height:1.4;margin-bottom:8px}
+    .legendRow.stack-legend-grid{display:grid;grid-template-columns:repeat(2,max-content);gap:4px 10px;align-items:center;justify-content:start}
+    .tau-phase-list{display:flex;flex-direction:column;gap:8px}
+    .tau-phase-row{display:grid;grid-template-columns:.78fr 1.02fr 2.2fr;gap:10px;border:1px solid var(--ring);border-radius:12px;padding:10px;background:#fff;transition:border-color .15s ease, box-shadow .15s ease, background .15s ease;cursor:pointer}
+    .tau-phase-cell .k{font-size:.72rem;color:var(--ink-3);margin-bottom:3px}
+    .tau-phase-cell .v{font-size:.83rem;color:var(--ink-2);font-weight:600;line-height:1.25}
+    .tau-phase-cell .s{font-size:.78rem;color:var(--ink-3);line-height:1.35}
+    .phase-value-line{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:2px}
+    .phase-badge{display:inline-flex;align-items:center;border:1px solid var(--ring);border-radius:999px;padding:1px 6px;font-size:.68rem;font-weight:700;line-height:1.35;letter-spacing:.01em}
+    .phase-badge.max{border-color:rgba(16,185,129,.38);background:rgba(16,185,129,.10);color:#047857}
+    .phase-badge.min{border-color:rgba(239,68,68,.34);background:rgba(239,68,68,.10);color:#b91c1c}
+    .phase-badge.tie{border-color:rgba(100,116,139,.34);background:rgba(148,163,184,.12);color:#334155}
+    .phase-mono{font-variant-numeric:tabular-nums}
+    .tau-phase-row.tau-hover-active{border-color:rgba(217,119,6,.65);box-shadow:0 0 0 2px rgba(245,158,11,.22) inset;background:#fffaf0}
+    .tau-phase-row.tau-pin-active{border-color:rgba(217,119,6,.9);box-shadow:0 0 0 2px rgba(245,158,11,.32) inset, 0 0 0 1px rgba(217,119,6,.18);background:#fff7e6}
+    .tau-phase-empty{font-size:.86rem;color:var(--ink-4)}
+    .tooltip-stack-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:3px}
+    .tooltip-stack-label{display:inline-flex;align-items:center;gap:7px}
+    .tooltip-dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex:0 0 auto}
+    .phase-profile-stack{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
+    .phase-profile-block{border:1px solid var(--ring);border-radius:12px;padding:10px;background:#fff}
+    .phase-profile-header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+    .phase-profile-title{font-size:.76rem;font-weight:700;color:var(--ink-2);letter-spacing:.01em;text-transform:uppercase}
+    .phase-profile-body{display:grid;grid-template-columns:84px 1fr;gap:10px;align-items:start;margin-top:8px}
+    .phase-profile-svg{width:72px;height:72px;display:block;opacity:.92}
+    .phase-profile-line{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:3px 0;border-top:1px solid rgba(203,213,225,.55)}
+    .phase-profile-line:first-child{border-top:none;padding-top:0}
+    .phase-profile-label{display:flex;flex-direction:column;gap:2px;font-size:.74rem;color:var(--ink-3)}
+    .phase-profile-value{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;font-size:.8rem;color:var(--ink-2);font-weight:600}
+    .phase-profile-sub{font-size:.68rem;color:var(--ink-4)}
+    .phase-outcome-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px}
+    .phase-outcome-item{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:.76rem;color:var(--ink-2)}
+    .phase-outcome-label{display:inline-flex;align-items:center;gap:6px;color:var(--ink-3)}
+    .phase-outcome-value{font-weight:600;color:var(--ink-2)}
+    .phase-rect-wrap{display:flex;justify-content:center;align-items:flex-start;padding-top:4px}
+
+    @media (max-width: 1200px){
+      .tau-phase-row{grid-template-columns:1fr}
+      .phase-profile-body{grid-template-columns:76px 1fr}
+      .phase-profile-svg{width:68px;height:68px}
+    }
+    @media (max-width: 980px){
+      .tab1-split{grid-template-columns:1fr}
+    }
+    @media (max-width: 760px){
+      .legendRow.stack-legend-grid{grid-template-columns:1fr}
+      .tau-phase-row{grid-template-columns:1fr}
+      .phase-profile-stack{grid-template-columns:1fr}
+      .phase-profile-body{grid-template-columns:1fr}
+      .phase-profile-svg{margin:0 auto}
+    }
+</style>
+</head>
+<body>
+  <header>
+    <h1>CascadesModel0_10</h1>
+  </header>
+
+  <div class="tabbar">
+    <button class="tab-btn active" data-tab="tab1Pane">Tab 1 · Single (p,q) + τ sweep</button>
+    <button class="tab-btn" data-tab="tab3Pane">Tab 2 · N sweep (stacked τ sweeps)</button>
+    <button class="tab-btn" data-tab="tabQPane">Tab 3 · Q sweep (fixed N, stacked τ sweeps)</button>
+    <button class="tab-btn" data-tab="tab2Pane">Tab 4 · (p,q) grid of τ sweeps</button>
+  </div>
+
+  <!-- TAB 1 -->
+  <div id="tab1Pane" class="tab-pane active">
+    <div class="panel-stack">
+      <details class="card collapsible-panel" id="tab1ControlsPanel" open>
+        <summary><span>Parameters &amp; run controls</span><span class="panel-sub">Set p, q, N, τ values, and run or batch the model.</span></summary>
+        <div class="panel-body">
+          <div class="controls">
+            <label>Prior probability of state A, p
+              <div class="row"><input id="p" type="number" min="0.01" max="0.99" step="0.01" value="0.5" /></div>
+            </label>
+            <label>Signal accuracy, q (P(signal = true state))
+              <div class="row"><input id="q" type="number" min="0.51" max="0.99" step="0.01" value="0.7" /></div>
+            </label>
+            <label>Number of agents, N
+              <div class="row"><input id="N" type="number" min="3" max="200" step="1" value="20" /></div>
+            </label>
+            <label>Trust list τ (comma-separated 0–1, e.g., 0,0.25,0.5,0.75,1)
+              <textarea id="tauList">0,0.25,0.5,0.75,1</textarea>
+            </label>
+            <label>Random seed (optional)
+              <input id="seed" type="text" placeholder="e.g., 42" />
+            </label>
+
+            <div class="btnbar">
+              <button id="btn-new">New Run</button>
+              <button id="btn-step" disabled>Step ▶</button>
+              <button id="btn-auto" disabled>Auto</button>
+            </div>
+            <div class="btnbar" style="grid-template-columns: repeat(4,1fr)">
+              <button id="btn-complete" disabled>Complete ⏩</button>
+              <button id="btn-runbatch" disabled>Run Batch</button>
+              <input id="batchN" type="number" min="1" max="50000" step="10" value="1000" title="Batch size"/>
+              <select id="tauResolutionSelect" title="τ sweep resolution">
+                <option value="101">101 τ values</option>
+                <option value="1001" selected>1001 τ values</option>
+                <option value="10001">10001 τ values</option>
+              </select>
+            </div>
+            <div class="btnbar" style="grid-template-columns: 1fr">
+              <button id="btn-clearall">Reset All</button>
+            </div>
+
+            <div class="legendRow" style="margin-top:12px">
+              <span class="chip"><span class="dot" style="background:rgba(34,211,238,.85);"></span> Private evidence: A</span>
+              <span class="chip"><span class="dot" style="background:rgba(248,113,113,.85);"></span> Private evidence: B</span>
+              <span class="chip"><span class="dot" style="background:transparent;border:2px solid rgba(34,211,238,.9);"></span> Public vote: A</span>
+              <span class="chip"><span class="dot" style="background:transparent;border:2px solid rgba(248,113,113,.9);"></span> Public vote: B</span>
+            </div>
+
+            <div style="margin-top:10px; display:grid; grid-template-columns: 1fr 1fr; gap:10px">
+              <div class="runStat">
+                <div>
+                  <div style="color:var(--ink-3);font-size:.8rem">True state</div>
+                  <div id="trueState" class="count">—</div>
+                </div>
+                <div id="runConsts" class="count" style="font-weight:600;font-size:.95rem">—</div>
+              </div>
+              <div class="runStat">
+                <div style="color:var(--ink-3);font-size:.8rem">Total communities counted</div>
+                <div id="totalCount" class="count">0</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="card collapsible-panel" id="tab1CommunityPanel" open>
+        <summary><span>Single community demonstrations &amp; aggregate metrics</span><span class="panel-sub">Same signals across rows; aggregate outcomes on the right.</span></summary>
+        <div class="panel-body tight">
+          <div class="tab1-split">
+            <div class="card nested-card" id="rowsCard">
+              <div style="display:flex;justify-content:space-between;align-items:center; margin-bottom:6px">
+                <div style="font-weight:700;color:var(--ink-2)">Communities (same signals, different τ; sorted high→low)</div>
+                <div class="muted" id="stepInfo" style="color:var(--ink-4)">—</div>
+              </div>
+              <div id="rows"></div>
+              <div style="margin-top:8px; display:flex; justify-content:flex-end; gap:8px">
+                <button id="btn-download-rows">Download community snapshot (SVG)</button>
+              </div>
+            </div>
+
+            <div class="card nested-card" id="aggPanel">
+              <div style="font-weight:700; margin-bottom:6px;color:var(--ink-2)">Aggregate over runs (per τ)</div>
+              <div class="legendRow stack-legend-grid" style="margin-bottom:6px">
+                <span class="chip"><span class="dot" style="background:var(--neutral)"></span> No-cascade &amp; Incorrect</span>
+                <span class="chip"><span class="dot" style="background:var(--bad)"></span> Cascade &amp; Incorrect</span>
+                <span class="chip"><span class="dot" style="background:var(--accent)"></span> No-cascade &amp; Correct</span>
+                <span class="chip"><span class="dot" style="background:var(--good)"></span> Cascade &amp; Correct</span>
+              </div>
+              <div id="aggBoxes"></div>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="card collapsible-panel" id="tab1MainFigurePanel" open>
+        <summary><span>Main τ figure</span><span class="panel-sub">Toggle stacking, hover scope, and which data layers are visible.</span></summary>
+        <div class="panel-body tight" id="sweepCard">
+          <div style="display:flex;justify-content:space-between;align-items:center; margin-bottom:8px; gap:10px; flex-wrap:wrap">
+            <div style="font-weight:700;color:var(--ink-2)">τ sweep (0.00 → 1.00)</div>
+            <div class="controlCluster" style="font-size:.85rem;color:var(--ink-3)">
+              <span>Stack grouped by</span>
+              <div class="stack-toggle" id="stackModeToggle" role="group" aria-label="Stack grouped by">
+                <button type="button" class="stack-toggle-btn active" data-stack-mode="cascade">Cascade</button>
+                <button type="button" class="stack-toggle-btn" data-stack-mode="correctness">Correctness</button>
+              </div>
+              <span>Hover shows</span>
+              <div class="stack-toggle" id="hoverScopeToggle" role="group" aria-label="Hover shows">
+                <button type="button" class="stack-toggle-btn active" data-hover-scope="tau">τ bin</button>
+                <button type="button" class="stack-toggle-btn" data-hover-scope="phase">Phase</button>
+              </div>
+              <label class="check-chip"><input id="showDataToggle" type="checkbox" checked /> Show simulated data</label>
+              <label class="check-chip"><input id="showAnalyticOverlayToggle" type="checkbox" checked /> Show analytic / predicted overlays</label>
+            </div>
+          </div>
+          <div class="legendRow" data-stack-legend="tab1-sweep" style="margin-bottom:6px"></div>
+          <div id="ribbonWrap" style="overflow-x:hidden; overflow-y:auto; position:relative;">
+            <svg id="ribbon" width="740" height="220"></svg>
+          </div>
+          <div style="margin-top:8px; display:flex; justify-content:flex-end; gap:8px">
+            <button id="btn-download-ribbon">Download τ sweep figure (SVG)</button>
+            <button id="btn-download-ribbon-csv">Download τ sweep data (CSV)</button>
+          </div>
+        </div>
+      </details>
+      <details class="card collapsible-panel" id="tab1OrderParamsPanel" open>
+        <summary><span>Order parameters over τ</span><span class="panel-sub">Cascade probability and aggregate accuracy.</span></summary>
+        <div class="panel-body tight">
+          <div class="order-plot-controls">
+            <div style="font-weight:700;color:var(--ink-2)">C<sub>N</sub>(τ) and A<sub>N</sub>(τ)</div>
+            
+          </div>
+          <div class="line-legend">
+            <span class="line-legend-chip" id="legend-sim-cascade"><span class="line-legend-swatch" style="border-top-color: var(--ink-2)"></span> Simulated P(cascade)</span>
+            <span class="line-legend-chip" id="legend-sim-correct"><span class="line-legend-swatch" style="border-top-color: var(--good)"></span> Simulated P(accurate aggregate vote)</span>
+            <span class="line-legend-chip" id="legend-pred-cascade"><span class="line-legend-swatch dashed" style="border-top-color: var(--ink-2)"></span> Predicted phase P(cascade)</span>
+            <span class="line-legend-chip" id="legend-pred-correct"><span class="line-legend-swatch dashed" style="border-top-color: var(--good)"></span> Predicted phase P(accurate aggregate vote)</span>
+            <span class="line-legend-chip" id="legend-thresholds"><span class="line-legend-swatch dashed" style="border-top-color: #94a3b8"></span> Phase cutoff τ = 1/d</span>
+          </div>
+          <svg id="orderPlot"></svg>
+        </div>
+      </details>
+
+
+      <details class="card collapsible-panel" id="tab1PhasePanel" open>
+        <summary><span>Phase performance</span><span class="panel-sub">Partition-level differences at the phase thresholds τ = 1/d.</span></summary>
+        <div class="panel-body tight">
+          <div class="tau-phase-title">τ phase performance</div>
+          <div id="tauPhaseNote" class="tau-phase-note"></div>
+          <div id="tauPartitions" class="tau-phase-list"></div>
+        </div>
+      </details>
+
+      <details class="card collapsible-panel" id="tab1LogPanel" open>
+        <summary><span>Event log</span><span class="panel-sub">Sequential updates, votes, and cascade onset.</span></summary>
+        <div class="panel-body tight">
+          <div style="display:flex;justify-content:space-between;align-items:center; margin-bottom:6px">
+            <div style="font-weight:700;color:var(--ink-2)">Event log</div>
+            <div class="muted" style="color:var(--ink-4)">L = log-odds; λ = log(q/(1−q))</div>
+          </div>
+          <div id="log" class="log" aria-live="polite"></div>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <!-- TAB 2 -->
+  <div id="tab2Pane" class="tab-pane">
+    <div class="wrap">
+      <div class="card controls">
+        <div style="font-weight:700;color:var(--ink-2);margin-bottom:4px">Parameter ranges</div>
+        <label>p range (start / step / end)
+          <div class="row">
+            <input id="pStart" type="number" min="0.01" max="0.99" step="0.01" value="0.3" title="p start" />
+            <input id="pStep"  type="number" min="0.01" max="0.99" step="0.01" value="0.1" title="p step" />
+            <input id="pEnd"   type="number" min="0.01" max="0.99" step="0.01" value="0.7" title="p end" />
+          </div>
+        </label>
+        <label>q range (start / step / end)
+          <div class="row">
+            <input id="qStart" type="number" min="0.51" max="0.99" step="0.01" value="0.6" title="q start" />
+            <input id="qStep"  type="number" min="0.01" max="0.49" step="0.01" value="0.1" title="q step" />
+            <input id="qEnd"   type="number" min="0.51" max="0.99" step="0.01" value="0.9" title="q end" />
+          </div>
+        </label>
+        <label>Number of agents, N
+          <div class="row">
+            <input id="NGrid" type="number" min="3" max="200" step="1" value="20" />
+          </div>
+        </label>
+        <label>Batch size per (p,q)
+          <div class="row">
+            <input id="batchGrid" type="number" min="1" max="20000" step="10" value="200" />
+          </div>
+        </label>
+        <label>Random seed (optional)
+          <input id="seedGrid" type="text" placeholder="e.g., grid-1" />
+        </label>
+
+        <div class="btnbar" style="grid-template-columns: 1fr 1fr">
+          <button id="btn-grid-run">Run grid batch</button>
+          <button id="btn-grid-clear">Clear grid</button>
+        </div>
+
+        <div style="margin-top:10px;font-size:.8rem;color:var(--ink-4)">
+          τ is automatically swept over 101 values from 0 to 1 for each (p,q) cell. Each panel
+          shows the same stacked categories as the main τ sweep. Hover over a panel to see counts,
+          percentages, and the mean/variance of the cascade start index for that (p,q,τ).
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="font-weight:700;color:var(--ink-2);margin-bottom:6px">
+          Grid of τ-sweep figures by (p,q)
+        </div>
+        <div class="legendRow" data-stack-legend="tab2-grid" style="margin-bottom:6px"></div>
+        <div style="margin-bottom:8px; display:flex; justify-content:flex-end;">
+          <button id="btn-grid-download">Download grid (SVG)</button>
+        </div>
+        <div id="gridPanel"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3 -->
+  <div id="tab3Pane" class="tab-pane">
+    <div class="wrap">
+      <div class="card controls">
+        <div style="font-weight:700;color:var(--ink-2);margin-bottom:4px">N sweep settings</div>
+
+        <label>Prior probability of state A, p
+          <div class="row"><input id="pN" type="number" min="0.01" max="0.99" step="0.01" value="0.5" /></div>
+        </label>
+        <label>Signal accuracy, q
+          <div class="row"><input id="qN" type="number" min="0.51" max="0.99" step="0.01" value="0.7" /></div>
+        </label>
+
+        <label>τ range (start / step / end)
+          <div class="row">
+            <input id="tauStartN" type="number" min="0" max="1" step="0.01" value="0.00" title="τ start" />
+            <input id="tauStepN"  type="number" min="0.001" max="1" step="0.001" value="0.01" title="τ step" />
+            <input id="tauEndN"   type="number" min="0" max="1" step="0.01" value="1.00" title="τ end" />
+          </div>
+        </label>
+
+        <label>Population size range (min N / max N)
+          <div class="row">
+            <input id="NMin" type="number" min="3" max="200" step="1" value="3" title="min N" />
+            <input id="NMax" type="number" min="3" max="200" step="1" value="100" title="max N" />
+          </div>
+        </label>
+
+        <label>Batch size (number of signal sequences; reused across all τ)
+          <div class="row">
+            <input id="batchN3" type="number" min="1" max="50000" step="10" value="200" />
+          </div>
+        </label>
+
+        <label>Random seed (optional)
+          <input id="seedN" type="text" placeholder="e.g., n-sweep-1" />
+        </label>
+
+        <div class="btnbar" style="grid-template-columns: 1fr 1fr">
+          <button id="btn-n-run">Run N sweep</button>
+          <button id="btn-n-clear">Clear</button>
+        </div>
+
+        <div style="margin-top:10px;font-size:.8rem;color:var(--ink-4)">
+          For each run, one max-N signal sequence is generated and then evaluated across all τ.
+          Results for smaller N are derived by truncating the last agents.
+          A separate summary plot shows success probability vs N for τ=0 and τ=1.
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="font-weight:700;color:var(--ink-2);margin-bottom:6px">Stacked τ sweeps by N</div>
+        <div class="legendRow" data-stack-legend="tab3-n" style="margin-bottom:6px"></div>
+
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
+          <button id="btn-download-nstack-png" disabled>Download stacked ribbons (PNG)</button>
+          <button id="btn-download-success-png" disabled>Download success-by-N (PNG)</button>
+        </div>
+
+        <div id="nPanel"></div>
+
+        <div style="margin-top:14px; font-weight:700; color:var(--ink-2);">
+          Success probability vs N (τ=0 and τ=1)
+        </div>
+        <svg id="successPlot"></svg>
+      </div>
+    </div>
+  </div>
+  <!-- TAB 3 (Q sweep) -->
+  <div id="tabQPane" class="tab-pane">
+    <div class="wrap">
+      <div class="card controls">
+        <div style="font-weight:700;color:var(--ink-2);margin-bottom:4px">Q sweep settings</div>
+
+        <label>Prior probability of state A, p
+          <div class="row"><input id="pQ" type="number" min="0.01" max="0.99" step="0.01" value="0.5" /></div>
+        </label>
+
+        <label>Fixed number of agents, N
+          <div class="row"><input id="NQ" type="number" min="3" max="200" step="1" value="50" /></div>
+        </label>
+
+        <label>q range (start / step / end)
+          <div class="row">
+            <input id="qStartQ" type="number" min="0.51" max="0.99" step="0.01" value="0.51" title="q start" />
+            <input id="qStepQ"  type="number" min="0.001" max="0.2" step="0.001" value="0.01" title="q step" />
+            <input id="qEndQ"   type="number" min="0.51" max="0.99" step="0.01" value="0.99" title="q end" />
+          </div>
+        </label>
+
+        <label>τ range (start / step / end)
+          <div class="row">
+            <input id="tauStartQ" type="number" min="0" max="1" step="0.01" value="0.00" title="τ start" />
+            <input id="tauStepQ"  type="number" min="0.001" max="1" step="0.001" value="0.01" title="τ step" />
+            <input id="tauEndQ"   type="number" min="0" max="1" step="0.01" value="1.00" title="τ end" />
+          </div>
+        </label>
+
+        <label>Batch size (number of runs per q; signals monotone in q within each run)
+          <div class="row">
+            <input id="batchQ" type="number" min="1" max="50000" step="10" value="200" />
+          </div>
+        </label>
+
+        <label>Random seed (optional)
+          <input id="seedQ" type="text" placeholder="e.g. q-sweep-1" />
+        </label>
+
+        <div class="btnbar" style="grid-template-columns: 1fr 1fr">
+          <button id="btn-q-run">Run Q sweep</button>
+          <button id="btn-q-clear">Clear</button>
+        </div>
+
+        <div style="margin-top:10px;font-size:.8rem;color:var(--ink-4)">
+          For each run, one true state and one set of per-agent uniform draws are generated.
+          For each q, signals are derived by thresholding those uniforms at q (so signals get strictly more accurate as q increases).
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="font-weight:700;color:var(--ink-2);margin-bottom:6px">Stacked τ sweeps by q (fixed N)</div>
+        <div class="legendRow" data-stack-legend="tabQ-q" style="margin-bottom:6px"></div>
+
+        <div id="qPanel"></div>
+
+        <div style="margin-top:14px; font-weight:700; color:var(--ink-2);">
+          Success probability vs q (τ=0 and τ=1)
+        </div>
+        <svg id="successPlotQ"></svg>
+      </div>
+    </div>
+  </div>
+
+
+
+  <div id="ribbonTip"></div>
+
+  <script>
+    // --- Utilities ---
+    function mulberry32(a){
+      return function(){
+        let t=a+=0x6D2B79F5;
+        t=Math.imul(t^t>>>15,t|1);
+        t^=t+Math.imul(t^t>>>7,t|61);
+        return((t^t>>>14)>>>0)/4294967296;
+      }
+    }
+    function parseSeed(s){
+      if(!s) return Math.floor(Math.random()*1e9);
+      let h=2166136261>>>0;
+      for(let i=0;i<s.length;i++){
+        h^=s.charCodeAt(i);
+        h=Math.imul(h,16777619);
+      }
+      return h>>>0;
+    }
+    const el=(id)=>document.getElementById(id);
+
+    // --- Global run state (Tab 1) ---
+    let rng, params, communities, stateA, signals, lambda, Lprior, stepIndex, autoTimer=null;
+
+    // τ sweep resolution & storage (Tab 1)
+    let tauCols = 1001; // 101, 1001, or 10001
+    let tauSweep = Array.from(
+      {length: tauCols},
+      ()=>({cc:0,ci:0,ncc:0,nci:0,total:0,cIdxSum:0,cIdxSqSum:0,cCount:0})
+    );
+
+    function resetTauSweep(){
+      tauSweep = Array.from(
+        {length: tauCols},
+        ()=>({cc:0,ci:0,ncc:0,nci:0,total:0,cIdxSum:0,cIdxSqSum:0,cCount:0})
+      );
+    }
+    function setTauResolution(cols){
+      cols=([101,1001,10001].includes(cols))?cols:1001;
+      if(cols===tauCols) return;
+      tauCols=cols;
+      resetTauSweep();
+      const sel = el('tauResolutionSelect');
+      if(sel) sel.value = String(tauCols);
+      log(`τ sweep resolution set to <b>${tauCols}</b> bins`);
+      drawRibbon();
+}
+
+
+// Geometry constants for ribbon chart (used by drawing and hover)
+const ribbonGeom = { left: 40, top: 10, height: 210, bottom: 52 };
+const outcomeDefs = {
+  cc:{label:'Cascade & Correct', color:'var(--good)'},
+  ci:{label:'Cascade & Incorrect', color:'var(--bad)'},
+  ncc:{label:'No-cascade & Correct', color:'var(--accent)'},
+  nci:{label:'No-cascade & Incorrect', color:'var(--neutral)'}
+};
+const outcomeLegendOrder = ['nci','ci','ncc','cc'];
+let stackMode = 'cascade';
+let hoverScope = 'tau';
+let showPhaseCutoffs = true;
+let showAnalyticProfiles = true;
+let showSimulatedData = true;
+let activeTauHighlights = [];
+const analyticTauProfileCache = new Map();
+const analyticPhaseProfileCache = new Map();
+let pinnedTauHighlights = [];
+let pinnedTauKey = '';
+let hoverTauKey = '';
+
+function clamp01(x){ return Math.max(0, Math.min(1, Number.isFinite(x) ? x : 0)); }
+
+function normalizeTauRanges(ranges){
+  return (ranges||[])
+    .map(r=>Array.isArray(r) ? {start:r[0], end:r[1]} : r)
+    .filter(r=>r && Number.isFinite(r.start) && Number.isFinite(r.end))
+    .map(r=>({start: clamp01(Math.min(r.start, r.end)), end: clamp01(Math.max(r.start, r.end))}))
+    .sort((a,b)=> a.start - b.start || a.end - b.end);
+}
+
+function sameTauRanges(a,b,eps=1e-12){
+  if((a?.length||0)!==(b?.length||0)) return false;
+  for(let i=0;i<(a?.length||0);i++){
+    if(Math.abs(a[i].start-b[i].start)>eps || Math.abs(a[i].end-b[i].end)>eps) return false;
+  }
+  return true;
+}
+
+function updateTauHighlightNodeClasses(){
+  document.querySelectorAll('[data-tau-key]').forEach(node=>{
+    const key = node.getAttribute('data-tau-key') || '';
+    node.classList.toggle('tau-hover-active', !!hoverTauKey && key===hoverTauKey && key!==pinnedTauKey);
+    node.classList.toggle('tau-pin-active', !!pinnedTauKey && key===pinnedTauKey);
+  });
+}
+
+function applyTauHighlights(ranges){
+  const normalized = normalizeTauRanges(ranges);
+  if(sameTauRanges(activeTauHighlights, normalized)) return;
+  activeTauHighlights = normalized;
+  drawRibbon({skipMetaPanels:true});
+}
+
+function setHoverTauHighlights(ranges, key=''){
+  if(pinnedTauKey && pinnedTauKey!==key) return;
+  hoverTauKey = key || '';
+  updateTauHighlightNodeClasses();
+  if(pinnedTauHighlights.length) return;
+  applyTauHighlights(ranges);
+}
+
+function clearHoverTauHighlights(key=''){
+  if(hoverTauKey && (!key || hoverTauKey===key)) hoverTauKey = '';
+  updateTauHighlightNodeClasses();
+  if(pinnedTauHighlights.length){
+    applyTauHighlights(pinnedTauHighlights);
+    return;
+  }
+  if(!activeTauHighlights.length) return;
+  activeTauHighlights = [];
+  drawRibbon({skipMetaPanels:true});
+}
+
+function togglePinnedTauHighlights(ranges, key=''){
+  const normalized = normalizeTauRanges(ranges);
+  if(pinnedTauKey && pinnedTauKey===key && sameTauRanges(pinnedTauHighlights, normalized)){
+    pinnedTauKey = '';
+    pinnedTauHighlights = [];
+    hoverTauKey = '';
+    updateTauHighlightNodeClasses();
+    activeTauHighlights = [];
+    drawRibbon({skipMetaPanels:true});
+    return false;
+  }
+  pinnedTauKey = key || '';
+  pinnedTauHighlights = normalized;
+  hoverTauKey = '';
+  updateTauHighlightNodeClasses();
+  applyTauHighlights(pinnedTauHighlights);
+  return true;
+}
+
+function resetTauHighlights(){
+  pinnedTauKey = '';
+  pinnedTauHighlights = [];
+  hoverTauKey = '';
+  updateTauHighlightNodeClasses();
+  if(!activeTauHighlights.length) return;
+  activeTauHighlights = [];
+  drawRibbon({skipMetaPanels:true});
+}
+
+function drawTauHighlightBands(svg, left, top, plotWidth, height, opts={}){
+  const ranges = activeTauHighlights || [];
+  if(!ranges.length) return;
+  const fill = opts.fill || 'rgba(245,158,11,0.14)';
+  const stroke = opts.stroke || 'rgba(217,119,6,0.80)';
+  const minWidth = opts.minWidth || 3;
+  ranges.forEach(range=>{
+    const x1 = left + clamp01(range.start) * plotWidth;
+    const x2 = left + clamp01(range.end) * plotWidth;
+    let width = x2 - x1;
+    let x = x1;
+    if(width < minWidth){
+      width = minWidth;
+      x = Math.max(left, Math.min(left + plotWidth - width, x1 - width/2));
+    }
+    const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rect.setAttribute('x',x);
+    rect.setAttribute('y',top);
+    rect.setAttribute('width',width);
+    rect.setAttribute('height',height);
+    rect.setAttribute('fill',fill);
+    rect.setAttribute('stroke',stroke);
+    rect.setAttribute('stroke-width','1');
+    rect.setAttribute('pointer-events','none');
+    svg.appendChild(rect);
+  });
+}
+
+function getStackDefinitions(mode=stackMode){
+  const order = (mode==='correctness') ? ['cc','ncc','ci','nci'] : ['cc','ci','ncc','nci'];
+  return order.map(key=>({key, label:outcomeDefs[key].label, color:outcomeDefs[key].color}));
+}
+
+function getStackCounts(d, mode=stackMode){
+  return getStackDefinitions(mode).map(def=>({
+    key:def.key,
+    label:def.label,
+    color:def.color,
+    value:d?.[def.key] || 0
+  }));
+}
+
+function stackLegendHTML(){
+  return outcomeLegendOrder.map(key=>{
+    const def = outcomeDefs[key];
+    return `<span class="chip"><span class="dot" style="background:${def.color}"></span> ${def.label}</span>`;
+  }).join('');
+}
+
+function updateStackLegends(){
+  document.querySelectorAll('[data-stack-legend]').forEach(node=>{
+    node.classList.add('stack-legend-grid');
+    node.innerHTML = stackLegendHTML();
+  });
+  document.querySelectorAll('[data-stack-mode]').forEach(btn=>{
+    const active = btn.getAttribute('data-stack-mode') === stackMode;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+  });
+}
+
+function updateHoverScopeToggle(){
+  document.querySelectorAll('[data-hover-scope]').forEach(btn=>{
+    const active = btn.getAttribute('data-hover-scope') === hoverScope;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+  });
+}
+
+function updateLineLegendState(){
+  const map = {
+    'legend-sim-cascade': showSimulatedData,
+    'legend-sim-correct': showSimulatedData,
+    'legend-pred-cascade': showAnalyticProfiles,
+    'legend-pred-correct': showAnalyticProfiles,
+    'legend-thresholds': showPhaseCutoffs
+  };
+  Object.entries(map).forEach(([id, on])=>{
+    const node = el(id);
+    if(node) node.classList.toggle('legend-off', !on);
+  });
+}
+
+function buildStackTooltipRows(d, total, mode=stackMode){
+  function fmtPct(n,d){ if(d<=0) return '0.0%'; return (Math.round((n/d)*1000)/10).toFixed(1) + '%'; }
+  return getStackCounts(d, mode)
+    .map(seg=>`<div class="tooltip-stack-row"><span class="tooltip-stack-label"><span class="tooltip-dot" style="background:${seg.color}"></span>${seg.label}</span><span><b>${seg.value}</b> (${fmtPct(seg.value,total)})</span></div>`)
+    .join('');
+}
+
+function tauLabelForIndex(idx, cols=tauCols){
+  const decimals = cols>=10000 ? 4 : cols>=1000 ? 3 : 2;
+  return (idx/((cols-1)||1)).toFixed(decimals);
+}
+
+function probCascade(d){ return (d && d.total>0) ? (d.cc + d.ci)/d.total : NaN; }
+function probCorrect(d){ return (d && d.total>0) ? (d.cc + d.ncc)/d.total : NaN; }
+
+function collectTauBinsForInterval(start, end, opts={}){
+  const includeStart = !!opts.includeStart;
+  const includeEnd = opts.includeEnd !== false;
+  const eps = 1e-12;
+  const bins=[];
+  for(let idx=0; idx<tauCols; idx++){
+    const tau = idx/((tauCols-1)||1);
+    const d = tauSweep?.[idx];
+    if(!d || !d.total) continue;
+    const geStart = includeStart ? tau >= start - eps : tau > start + eps;
+    const leEnd = includeEnd ? tau <= end + eps : tau < end - eps;
+    if(geStart && leEnd) bins.push({idx, tau, d});
+  }
+  return bins;
+}
+
+function summarizeTauBins(bins){
+  if(!bins.length) return {sampledBins:0, meanOutcomeProb:{cc:0,ci:0,ncc:0,nci:0}};
+  let cascadeSum=0, cascadeSq=0, correctSum=0, correctSq=0;
+  let minCascade=Infinity, maxCascade=-Infinity, minCorrect=Infinity, maxCorrect=-Infinity;
+  const totals = {cc:0, ci:0, ncc:0, nci:0};
+  const outcomeProbSums = {cc:0, ci:0, ncc:0, nci:0};
+  bins.forEach(({d})=>{
+    const pC = probCascade(d);
+    const pA = probCorrect(d);
+    const total = d.total || 1;
+    cascadeSum += pC;
+    cascadeSq += pC * pC;
+    correctSum += pA;
+    correctSq += pA * pA;
+    if(pC < minCascade) minCascade = pC;
+    if(pC > maxCascade) maxCascade = pC;
+    if(pA < minCorrect) minCorrect = pA;
+    if(pA > maxCorrect) maxCorrect = pA;
+    ['cc','ci','ncc','nci'].forEach(key=>{
+      totals[key] += d[key]||0;
+      outcomeProbSums[key] += (d[key]||0) / total;
+    });
+  });
+  const sampledBins = bins.length;
+  const avgCascade = cascadeSum / sampledBins;
+  const avgCorrect = correctSum / sampledBins;
+  const meanOutcomeProb = Object.fromEntries(Object.keys(outcomeProbSums).map(key=>[key, outcomeProbSums[key] / sampledBins]));
+  const dominantKey = Object.keys(meanOutcomeProb).sort((a,b)=>meanOutcomeProb[b]-meanOutcomeProb[a] || totals[b]-totals[a])[0];
+  return {
+    sampledBins,
+    avgCascade,
+    minCascade,
+    maxCascade,
+    varCascade: Math.max(0, cascadeSq / sampledBins - avgCascade * avgCascade),
+    avgCorrect,
+    minCorrect,
+    maxCorrect,
+    varCorrect: Math.max(0, correctSq / sampledBins - avgCorrect * avgCorrect),
+    dominantKey,
+    meanOutcomeProb
+  };
+}
+
+function computeTauPartitions(N){
+  const n = Math.max(0, Math.floor(Number(N) || 0));
+  if(n <= 2){
+    return [{phase:1, start:0, end:1, includeStart:true, includeEnd:true, threshold:null, minMargin:null, impossible:true}];
+  }
+  const parts = [{phase:1, start:0, end:1/(n-1), includeStart:true, includeEnd:true, threshold:null, minMargin:null, impossible:true}];
+  let phase = 2;
+  for(let d=n-1; d>=3; d--){
+    parts.push({phase:phase++, start:1/d, end:1/(d-1), includeStart:false, includeEnd:true, threshold:1/d, minMargin:d, impossible:false});
+  }
+  parts.push({phase:phase, start:0.5, end:1, includeStart:false, includeEnd:true, threshold:0.5, minMargin:2, impossible:false});
+  return parts;
+}
+
+function getTauPartitionBundle(N){
+  const decimals = tauCols>=10000 ? 4 : tauCols>=1000 ? 3 : 2;
+  const partitions = computeTauPartitions(N);
+  const pVal = params?.p ?? Number(el('p')?.value) ?? 0.5;
+  const qVal = params?.q ?? Number(el('q')?.value) ?? 0.7;
+  partitions.forEach(part=>{
+    const bins = collectTauBinsForInterval(part.start, part.end, {includeStart: part.includeStart, includeEnd: part.includeEnd});
+    part.summary = summarizeTauBins(bins);
+    part.predicted = getAnalyticPhaseProfile(part, pVal, qVal, N);
+  });
+  const predictedExtremes = computePhaseMetricExtremes(partitions, 'predicted');
+  const simulatedExtremes = computePhaseMetricExtremes(partitions, 'simulated');
+  return {partitions, decimals, pVal, qVal, predictedExtremes, simulatedExtremes};
+}
+
+function cascadeBarrierLabel(part){
+  return part?.impossible ? 'No reachable cascade barrier' : `m = ${part.minMargin}`;
+}
+
+function cascadeBarrierExplanation(part, decimals){
+  if(!part) return '';
+  if(part.impossible) return 'No predecessor vote margin is strong enough to make later private signals irrelevant anywhere in this phase.';
+  return `A cascade first becomes possible once the revealed vote margin reaches m = ${part.minMargin}. Higher m makes cascades harder to reach but more trustworthy once reached.`;
+}
+
+function formatCascadeTradeoff(predicted){
+  if(!predicted) return '';
+  return `P(correct cascade) = <b>${(predicted.cc||0).toFixed(3)}</b> · P(incorrect cascade) = <b>${(predicted.ci||0).toFixed(3)}</b>`;
+}
+
+function cascadeReliability(profile){
+  if(!profile) return null;
+  const pCascade = (profile.cc||0) + (profile.ci||0);
+  return pCascade > 1e-12 ? (profile.cc||0) / pCascade : null;
+}
+
+function getPhaseMetricValue(part, mode, field){
+  if(mode === 'predicted'){
+    const profile = part?.predicted || null;
+    if(!profile) return null;
+    if(field === 'pCascade') return profile.pCascade;
+    if(field === 'rel') return cascadeReliability(profile);
+    if(field === 'cc') return profile.cc;
+    return null;
+  }
+  const summary = part?.summary || null;
+  if(!summary?.sampledBins) return null;
+  if(field === 'pCascade') return summary.avgCascade;
+  if(field === 'rel') return cascadeReliability(summary.meanOutcomeProb);
+  if(field === 'cc') return summary.meanOutcomeProb?.cc ?? null;
+  return null;
+}
+
+function computePhaseMetricExtremes(partitions, mode){
+  const fields = ['pCascade','rel','cc'];
+  const out = {};
+  const eps = 1e-12;
+  fields.forEach(field=>{
+    const entries = (partitions||[])
+      .map(part=>({phase: part.phase, value: getPhaseMetricValue(part, mode, field)}))
+      .filter(entry=>Number.isFinite(entry.value));
+    if(!entries.length){
+      out[field] = {min:null, max:null, minPhases:new Set(), maxPhases:new Set(), tied:false};
+      return;
+    }
+    const values = entries.map(entry=>entry.value);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const tied = Math.abs(max - min) <= eps;
+    out[field] = {
+      min,
+      max,
+      minPhases: new Set(entries.filter(entry=>Math.abs(entry.value - min) <= eps).map(entry=>entry.phase)),
+      maxPhases: new Set(entries.filter(entry=>Math.abs(entry.value - max) <= eps).map(entry=>entry.phase)),
+      tied
+    };
+  });
+  return out;
+}
+
+function getPhaseMetricFlags(part, bundle, mode, field){
+  const stats = mode === 'predicted' ? bundle?.predictedExtremes?.[field] : bundle?.simulatedExtremes?.[field];
+  if(!stats || stats.min===null || stats.max===null || stats.tied) return {isMax:false, isMin:false, tied:!!stats?.tied};
+  return {
+    isMax: stats.maxPhases?.has(part.phase) || false,
+    isMin: stats.minPhases?.has(part.phase) || false,
+    tied: false
+  };
+}
+
+function phaseMetricBadgesHTML(part, bundle, mode, field){
+  const flags = getPhaseMetricFlags(part, bundle, mode, field);
+  const badges = [];
+  if(flags.tied){
+    badges.push('<span class="phase-badge tie">all phases tied</span>');
+  } else {
+    if(flags.isMax) badges.push('<span class="phase-badge max">phase max</span>');
+    if(flags.isMin) badges.push('<span class="phase-badge min">phase min</span>');
+  }
+  return badges.join('');
+}
+
+function formatPhaseMetricDisplay(value){
+  return Number.isFinite(value) ? value.toFixed(3) : '—';
+}
+
+function getPhaseMetricSubtext(mode, field, value, part){
+  if(Number.isFinite(value)){
+    return mode === 'predicted'
+      ? 'Exact phase value'
+      : `Simulated mean across ${part.summary.sampledBins} sampled τ bin${part.summary.sampledBins===1?'':'s'}`;
+  }
+  if(field === 'rel') return 'Undefined because cascades never occur in this phase.';
+  return mode === 'predicted' ? 'Exact phase value unavailable.' : 'No sampled τ bins in this phase.';
+}
+
+function formatPhaseMetricValueWithBadges(part, bundle, mode, field){
+  const value = getPhaseMetricValue(part, mode, field);
+  if(value===null) return '<span class="phase-mono">—</span>';
+  const badges = phaseMetricBadgesHTML(part, bundle, mode, field);
+  return `<span class="phase-mono">${formatPhaseMetricDisplay(value)}</span>${badges ? ` ${badges}` : ''}`;
+}
+
+function buildPhaseOutcomeSummaryHTML(part, mode){
+  if(mode === 'simulated' && !showSimulatedData) return '';
+  if(mode === 'predicted' && !showAnalyticProfiles) return '';
+  const profile = mode === 'predicted' ? part?.predicted : part?.summary?.meanOutcomeProb;
+  if(!profile) return '';
+  return `<div class="phase-outcome-grid">${outcomeLegendOrder.map(key=>{
+    const def = outcomeDefs[key];
+    return `<div class="phase-outcome-item"><span class="phase-outcome-label"><span class="tooltip-dot" style="background:${def.color}"></span>${def.label}</span><span class="phase-outcome-value">${((profile[key]||0)).toFixed(3)}</span></div>`;
+  }).join('')}</div>`;
+}
+
+function buildPhaseProfileBlockHTML(part, bundle, mode){
+  if(mode === 'simulated' && !showSimulatedData) return '';
+  if(mode === 'predicted' && !showAnalyticProfiles) return '';
+  const metrics = {
+    pCascade: getPhaseMetricValue(part, mode, 'pCascade'),
+    rel: getPhaseMetricValue(part, mode, 'rel'),
+    cc: getPhaseMetricValue(part, mode, 'cc')
+  };
+  const title = mode === 'predicted' ? 'Analytic' : 'Simulated';
+  const stroke = mode === 'predicted' ? '#f59e0b' : '#60a5fa';
+  const fill = mode === 'predicted' ? 'rgba(245,158,11,.16)' : 'rgba(96,165,250,.18)';
+  const dash = mode === 'predicted' ? '5 4' : '';
+  const hasRect = Number.isFinite(metrics.pCascade) && Number.isFinite(metrics.rel) && metrics.pCascade > 0 && metrics.rel > 0;
+  const rectWidth = hasRect ? 52 * Math.max(0, Math.min(1, metrics.pCascade)) : 0;
+  const rectHeight = hasRect ? 52 * Math.max(0, Math.min(1, metrics.rel)) : 0;
+  const rectX = 10;
+  const rectBottom = 62;
+  const rectY = rectBottom - rectHeight;
+  const rectSvg = hasRect
+    ? `<rect x="${rectX}" y="${rectY.toFixed(2)}" width="${rectWidth.toFixed(2)}" height="${rectHeight.toFixed(2)}" rx="1.5" fill="${fill}" stroke="${stroke}" stroke-width="1.8" ${dash ? `stroke-dasharray="${dash}"` : ''}/>`
+    : '';
+  return `<div class="phase-profile-block">
+    <div class="phase-profile-header"><div class="phase-profile-title">${title}</div><div class="phase-profile-sub">${mode === 'predicted' ? 'phase value' : `mean across ${part.summary.sampledBins} sampled τ bin${part.summary.sampledBins===1?'':'s'}`}</div></div>
+    ${buildPhaseOutcomeSummaryHTML(part, mode)}
+    <div class="phase-profile-body">
+      <div class="phase-rect-wrap"><svg class="phase-profile-svg" viewBox="0 0 72 72" aria-hidden="true">${rectSvg}</svg></div>
+      <div class="phase-profile-metrics">
+        <div class="phase-profile-line">
+          <div class="phase-profile-label"><span>P(cascade)</span></div>
+          <div class="phase-profile-value">${formatPhaseMetricValueWithBadges(part, bundle, mode, 'pCascade')}</div>
+        </div>
+        <div class="phase-profile-line">
+          <div class="phase-profile-label"><span>P(correct | cascade)</span></div>
+          <div class="phase-profile-value">${formatPhaseMetricValueWithBadges(part, bundle, mode, 'rel')}</div>
+        </div>
+        <div class="phase-profile-line">
+          <div class="phase-profile-label"><span>P(correct cascade)</span></div>
+          <div class="phase-profile-value">${formatPhaseMetricValueWithBadges(part, bundle, mode, 'cc')}</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function buildPhaseProfileCellHTML(part, bundle){
+  const blocks = [];
+  if(showSimulatedData) blocks.push(buildPhaseProfileBlockHTML(part, bundle, 'simulated'));
+  if(showAnalyticProfiles) blocks.push(buildPhaseProfileBlockHTML(part, bundle, 'predicted'));
+  if(!blocks.length){
+    blocks.push('<div class="phase-profile-block"><div class="phase-profile-title">Profile hidden</div></div>');
+  }
+  return `<div class="tau-phase-cell"><div class="k">Profile</div><div class="phase-profile-stack">${blocks.join('')}</div></div>`;
+}
+
+function buildPhaseMetricCellHTML(part, bundle, field, heading){
+  const chunks = [];
+  if(showSimulatedData){
+    const simVal = getPhaseMetricValue(part, 'simulated', field);
+    const simBadges = simVal===null ? '' : phaseMetricBadgesHTML(part, bundle, 'simulated', field);
+    chunks.push(`<div class="phase-value-line"><span class="v phase-mono">${formatPhaseMetricDisplay(simVal)}</span>${simBadges}</div><div class="s">${getPhaseMetricSubtext('simulated', field, simVal, part)}</div>`);
+  }
+  if(showAnalyticProfiles){
+    const predVal = getPhaseMetricValue(part, 'predicted', field);
+    const predBadges = predVal===null ? '' : phaseMetricBadgesHTML(part, bundle, 'predicted', field);
+    chunks.push(`<div class="phase-value-line"><span class="v phase-mono">${formatPhaseMetricDisplay(predVal)}</span>${predBadges}</div><div class="s">${getPhaseMetricSubtext('predicted', field, predVal, part)}</div>`);
+  }
+  if(!chunks.length){
+    chunks.push('<div class="v">Hidden</div><div class="s">Both simulated and analytic overlays are currently hidden.</div>');
+  }
+  return `<div class="tau-phase-cell"><div class="k">${heading}</div>${chunks.join('')}</div>`;
+}
+
+function buildPhaseMetricTooltipRows(part, bundle, mode, label){
+  if(mode === 'simulated' && !showSimulatedData) return '';
+  if(mode === 'predicted' && !showAnalyticProfiles) return '';
+  const title = mode === 'predicted' ? 'Exact phase profile' : 'Simulated phase mean';
+  const lines = [
+    {field:'pCascade', label:'P(cascade)'},
+    {field:'rel', label:'P(correct | cascade)'},
+    {field:'cc', label:'P(correct cascade)'}
+  ].map(def=>{
+    const value = getPhaseMetricValue(part, mode, def.field);
+    const badges = value===null ? '' : phaseMetricBadgesHTML(part, bundle, mode, def.field);
+    const suffix = badges ? ` ${badges}` : '';
+    return `<div class="tooltip-stack-row"><span class="tooltip-stack-label">${def.label}</span><span><b>${formatPhaseMetricDisplay(value)}</b>${suffix}</span></div>`;
+  }).join('');
+  return `<div style="margin-top:6px;font-size:.78rem;color:#475569">${title}${label ? ` · ${label}` : ''}</div>${lines}`;
+}
+
+function profileDecompositionHTML(profile, label='Exact'){
+  if(!profile) return '';
+  const pCascade = (profile.cc||0) + (profile.ci||0);
+  const rel = cascadeReliability(profile);
+  const relTxt = Number.isFinite(rel) ? rel.toFixed(3) : '—';
+  return `<div style="margin-top:5px;color:#334155">${label}: <b>${(profile.cc||0).toFixed(3)}</b> = P(cascade) <b>${pCascade.toFixed(3)}</b> × P(correct | cascade) <b>${relTxt}</b></div>`;
+}
+
+function getBestCorrectCascadePartition(partitions){
+  const eligible = (partitions||[]).filter(part=>!part.impossible && part.predicted);
+  if(!eligible.length) return null;
+  return eligible.reduce((best, part)=> ((part.predicted?.cc||0) > (best.predicted?.cc||0) + 1e-12 ? part : best), eligible[0]);
+}
+
+function explainWhyBestPhase(partitions){
+  const best = getBestCorrectCascadePartition(partitions);
+  if(!best || !best.predicted) return '';
+  const idx = partitions.findIndex(part=>part.phase===best.phase);
+  const stricter = idx>0 ? partitions[idx-1] : null;
+  const looser = idx>=0 && idx<partitions.length-1 ? partitions[idx+1] : null;
+  const bestRel = cascadeReliability(best.predicted);
+  let html = `Analytically, the highest expected correct-cascade share is in <b>P${best.phase}</b> (${cascadeBarrierLabel(best)}), because <b>P(correct cascade)</b> = <b>P(cascade)</b> × <b>P(correct | cascade)</b> peaks there. In this phase those exact values are <b>${best.predicted.cc.toFixed(3)}</b> = <b>${best.predicted.pCascade.toFixed(3)}</b> × <b>${Number.isFinite(bestRel) ? bestRel.toFixed(3) : '—'}</b>.`;
+  if(looser && !looser.impossible && looser.predicted){
+    const looserRel = cascadeReliability(looser.predicted);
+    html += ` Relative to the looser next phase <b>P${looser.phase}</b> (${cascadeBarrierLabel(looser)}), the model makes cascades easier to start, but the conditional reliability of those cascades falls from <b>${Number.isFinite(bestRel) ? bestRel.toFixed(3) : '—'}</b> to <b>${Number.isFinite(looserRel) ? looserRel.toFixed(3) : '—'}</b>, so the product drops from <b>${best.predicted.cc.toFixed(3)}</b> to <b>${looser.predicted.cc.toFixed(3)}</b>.`;
+  } else {
+    html += ` This is also the loosest cascade-enabled phase, so making the barrier any smaller is impossible.`;
+  }
+  if(stricter && !stricter.impossible && stricter.predicted){
+    const stricterRel = cascadeReliability(stricter.predicted);
+    html += ` Relative to the stricter previous phase <b>P${stricter.phase}</b> (${cascadeBarrierLabel(stricter)}), requiring more evidence raises cascade reliability from <b>${Number.isFinite(stricterRel) ? stricterRel.toFixed(3) : '—'}</b> to <b>${Number.isFinite(bestRel) ? bestRel.toFixed(3) : '—'}</b>, but it no longer raises it enough to offset the loss in cascade incidence, so the product there is only <b>${stricter.predicted.cc.toFixed(3)}</b>.`;
+  } else if(best.phase === ((partitions||[])[1]?.phase || -1)){
+    html += ` This is the first cascade-enabled phase, so moving to a stricter barrier would eliminate cascades entirely.`;
+  }
+  return html;
+}
+
+function representativeTauForPartition(part){
+  if(!part) return 0;
+  const start = clamp01(part.start);
+  const end = clamp01(part.end);
+  if(Math.abs(end - start) < 1e-12) return start;
+  let tau = (start + end) / 2;
+  if(part.includeStart === false && Math.abs(tau - start) < 1e-12) tau = Math.min(end, start + (end - start) * 0.5);
+  if(part.includeEnd === false && Math.abs(tau - end) < 1e-12) tau = Math.max(start, end - (end - start) * 0.5);
+  return clamp01(tau);
+}
+
+function dominantOutcomeKey(profile){
+  return Object.keys(outcomeDefs).sort((a,b)=> (profile?.[b]||0) - (profile?.[a]||0))[0] || 'ncc';
+}
+
+function computeExactOutcomeProfileForTau(tau, pVal, qVal, N){
+  const tauNum = clamp01(tau);
+  const p = Math.max(1e-12, Math.min(1 - 1e-12, Number(pVal) || 0.5));
+  const q = Math.max(0.5000001, Math.min(1 - 1e-12, Number(qVal) || 0.7));
+  const n = Math.max(0, Math.floor(Number(N) || 0));
+  const cacheKey = [tauNum.toFixed(12), p.toFixed(12), q.toFixed(12), n].join('|');
+  if(analyticTauProfileCache.has(cacheKey)) return analyticTauProfileCache.get(cacheKey);
+  const lambdaLocal = Math.log(q / (1 - q));
+  const L0Local = Math.log(p / (1 - p));
+  const eps = 1e-12;
+
+  function oneTruth(truthA){
+    let dist = new Map([[0, 1]]);
+    const out = {cc:0, ci:0, ncc:0, nci:0};
+    const plusProb = truthA ? q : (1 - q);
+    const minusProb = 1 - plusProb;
+    for(let t=0; t<n; t++){
+      const next = new Map();
+      for(const [d, prob] of dist.entries()){
+        if(prob <= 1e-15) continue;
+        const Lprev = L0Local + tauNum * d * lambdaLocal;
+        if(Lprev > lambdaLocal + eps){
+          if(truthA) out.cc += prob;
+          else out.ci += prob;
+          continue;
+        }
+        if(Lprev < -lambdaLocal - eps){
+          if(truthA) out.ci += prob;
+          else out.cc += prob;
+          continue;
+        }
+        next.set(d + 1, (next.get(d + 1) || 0) + prob * plusProb);
+        next.set(d - 1, (next.get(d - 1) || 0) + prob * minusProb);
+      }
+      dist = next;
+      if(!dist.size) break;
+    }
+    for(const [d, prob] of dist.entries()){
+      if(prob <= 1e-15) continue;
+      if(d > 0){
+        if(truthA) out.ncc += prob;
+        else out.nci += prob;
+      } else if(d < 0){
+        if(truthA) out.nci += prob;
+        else out.ncc += prob;
+      } else {
+        out.ncc += prob * 0.5;
+        out.nci += prob * 0.5;
+      }
+    }
+    return out;
+  }
+
+  const outA = oneTruth(true);
+  const outB = oneTruth(false);
+  const profile = {cc:0, ci:0, ncc:0, nci:0};
+  Object.keys(profile).forEach(key=>{
+    profile[key] = p * outA[key] + (1 - p) * outB[key];
+  });
+  const total = Object.values(profile).reduce((s,v)=>s+v,0) || 1;
+  Object.keys(profile).forEach(key=>{ profile[key] = profile[key] / total; });
+  profile.pCascade = profile.cc + profile.ci;
+  profile.pCorrect = profile.cc + profile.ncc;
+  profile.dominantKey = dominantOutcomeKey(profile);
+  analyticTauProfileCache.set(cacheKey, profile);
+  return profile;
+}
+
+function getAnalyticPhaseProfile(part, pVal, qVal, N){
+  const tauRep = representativeTauForPartition(part);
+  const cacheKey = [Math.floor(Number(N)||0), (Number(pVal)||0).toFixed(12), (Number(qVal)||0).toFixed(12), part.start.toFixed(12), part.end.toFixed(12), String(part.includeStart), String(part.includeEnd)].join('|');
+  if(analyticPhaseProfileCache.has(cacheKey)) return analyticPhaseProfileCache.get(cacheKey);
+  const base = computeExactOutcomeProfileForTau(tauRep, pVal, qVal, N);
+  const pred = {
+    tauRep,
+    cc: base.cc,
+    ci: base.ci,
+    ncc: base.ncc,
+    nci: base.nci,
+    pCascade: base.pCascade,
+    pCorrect: base.pCorrect,
+    pCorrectGivenCascade: cascadeReliability(base),
+    dominantKey: base.dominantKey
+  };
+  analyticPhaseProfileCache.set(cacheKey, pred);
+  return pred;
+}
+
+function findTauPartitionForValue(tau, partitions){
+  const eps = 1e-12;
+  return (partitions||[]).find(part=>{
+    const ge = part.includeStart ? tau >= part.start - eps : tau > part.start + eps;
+    const le = part.includeEnd ? tau <= part.end + eps : tau < part.end - eps;
+    return ge && le;
+  }) || (partitions||[])[(partitions||[]).length - 1] || null;
+}
+
+function buildPhaseOutcomeRows(summary){
+  const meanOutcomeProb = summary?.meanOutcomeProb || {cc:0,ci:0,ncc:0,nci:0};
+  return outcomeLegendOrder.map(key=>{
+    const def = outcomeDefs[key];
+    return `<div class="tooltip-stack-row"><span class="tooltip-stack-label"><span class="tooltip-dot" style="background:${def.color}"></span>${def.label}</span><span><b>${(meanOutcomeProb[key]||0).toFixed(3)}</b></span></div>`;
+  }).join('');
+}
+
+function formatPhasePredictionRows(predicted){
+  if(!predicted) return '';
+  return outcomeLegendOrder.map(key=>{
+    const def = outcomeDefs[key];
+    return `<div class="tooltip-stack-row"><span class="tooltip-stack-label"><span class="tooltip-dot" style="background:${def.color}"></span>${def.label}</span><span><b>${(predicted[key]||0).toFixed(3)}</b></span></div>`;
+  }).join('');
+}
+
+function predictionStatLine(predicted, field){
+  if(!predicted) return '';
+  const value = field==='cascade' ? predicted.pCascade : field==='correct' ? predicted.pCorrect : field==='cc' ? predicted.cc : predicted.ci;
+  const label = field==='cascade' ? 'Exact phase value' : field==='correct' ? 'Exact phase value' : field==='cc' ? 'Exact correct-cascade share' : 'Exact incorrect-cascade share';
+  return `<div class="s" style="margin-top:5px">${label}: <b>${value.toFixed(3)}</b></div>`;
+}
+
+function buildPhaseTooltipHTML(part, tauValue, decimals, bundle=null){
+  const summary = part?.summary || {sampledBins:0};
+  const predicted = part?.predicted || null;
+  const thresholdText = part?.impossible
+    ? 'No cascade is reachable anywhere in this phase.'
+    : `Entered by crossing τ > ${part.threshold.toFixed(decimals)}.`;
+  const simulatedHTML = showSimulatedData
+    ? (summary.sampledBins
+      ? buildPhaseMetricTooltipRows(part, bundle, 'simulated', `${summary.sampledBins} sampled τ bin${summary.sampledBins===1?'':'s'}`)
+      : '<div style="margin-top:6px;color:#475569">No sampled τ bins in this phase at the current resolution.</div>')
+    : '';
+  const predictedHTML = showAnalyticProfiles && predicted
+    ? buildPhaseMetricTooltipRows(part, bundle, 'predicted', `representative τ = ${predicted.tauRep.toFixed(decimals)}`)
+    : '';
+  return `<div style="font-weight:700;margin-bottom:4px">Phase P${part.phase} · τ ${formatPartitionInterval(part, decimals)}</div>
+    <div style="color:#334155">Hovered τ value: <b>${tauValue.toFixed(decimals)}</b></div>
+    <div style="color:#334155">${part.impossible ? 'No reachable cascade barrier in this phase.' : `Barrier <b>m = ${part.minMargin}</b> · ${thresholdText}`}</div>
+    ${simulatedHTML}
+    ${predictedHTML}`;
+}
+
+function formatPartitionInterval(part, decimals){
+  const l = part.includeStart ? '[' : '(';
+  const r = part.includeEnd ? ']' : ')';
+  return `${l}${part.start.toFixed(decimals)}, ${part.end.toFixed(decimals)}${r}`;
+}
+
+function phaseRowKey(part, decimals){
+  return `phase-${part.phase}-${part.start.toFixed(decimals+2)}-${part.end.toFixed(decimals+2)}`;
+}
+
+function statSummaryHTML(summary, prefix){
+  const avg = summary[`avg${prefix}`];
+  const minV = summary[`min${prefix}`];
+  const maxV = summary[`max${prefix}`];
+  const varV = summary[`var${prefix}`];
+  if(!summary.sampledBins) return '<div class="v">—</div><div class="s">No sampled τ bins in this partition.</div>';
+  return `<div class="v">μ=${avg.toFixed(3)} · min=${minV.toFixed(3)} · max=${maxV.toFixed(3)}</div><div class="s">var=${varV.toFixed(4)} across ${summary.sampledBins} sampled τ bin${summary.sampledBins===1?'':'s'}</div>`;
+}
+
+function createPhaseRow(part, decimals, bundle){
+  const row = document.createElement('div');
+  row.className = 'tau-phase-row';
+  row.tabIndex = 0;
+  const key = phaseRowKey(part, decimals);
+  row.setAttribute('data-tau-key', key);
+  const intervalText = formatPartitionInterval(part, decimals);
+  row.innerHTML = `
+    <div class="tau-phase-cell"><div class="k">Phase</div><div class="v">P${part.phase}</div><div class="s">${part.impossible ? 'No-cascade phase' : `Barrier m = ${part.minMargin}`}</div></div>
+    <div class="tau-phase-cell"><div class="k">τ interval</div><div class="v">${intervalText}</div><div class="s">${part.threshold===null ? 'Below the first phase-shift threshold.' : `Entered by crossing τ > ${part.threshold.toFixed(decimals)}`}</div></div>
+    ${buildPhaseProfileCellHTML(part, bundle)}`;
+  const ranges = [{start:part.start, end:part.end}];
+  const enter = ()=>setHoverTauHighlights(ranges, key);
+  const leave = ()=>clearHoverTauHighlights(key);
+  const toggle = (evt)=>{
+    evt.preventDefault();
+    togglePinnedTauHighlights(ranges, key);
+  };
+  row.addEventListener('mouseenter', enter);
+  row.addEventListener('mouseleave', leave);
+  row.addEventListener('focus', enter);
+  row.addEventListener('blur', leave);
+  row.addEventListener('click', toggle);
+  row.addEventListener('keydown', (evt)=>{
+    if(evt.key==='Enter' || evt.key===' '){
+      evt.preventDefault();
+      togglePinnedTauHighlights(ranges, key);
+    }
+  });
+  return row;
+}
+
+function renderTauPartitions(){
+  const host = el('tauPartitions');
+  const note = el('tauPhaseNote');
+  if(!host || !note) return;
+  host.innerHTML = '';
+  const N = params?.N || Number(el('N')?.value) || 0;
+  const hasData = (tauSweep||[]).some(d => (d?.total||0) > 0);
+  if(!N || !hasData){
+    note.textContent = 'Run a batch to characterize how each τ phase performs for the current population size.';
+    host.innerHTML = '<div class="tau-phase-empty">No τ phase analysis available yet.</div>';
+    updateTauHighlightNodeClasses();
+    return;
+  }
+  const bundle = getTauPartitionBundle(N);
+  const {partitions, decimals} = bundle;
+  const visible = partitions.filter(part=>part.summary.sampledBins>0 || partitions.length<=40 || part.phase===1 || part.phase===partitions.length);
+  const omitted = partitions.length - visible.length;
+  const firstThreshold = N>2 ? (1/(N-1)).toFixed(decimals) : '—';
+  note.innerHTML = `For N=${N}, phase shifts occur at τ = 1/d for d = 2,…,${Math.max(2,N-1)}.${N>2 ? ` The first shift is at τ=${firstThreshold}.` : ''}${omitted>0 ? ` ${omitted} narrower theoretical partition${omitted===1?' is':'s are'} omitted because the current τ resolution does not sample them.` : ''}`;
+  visible.forEach(part=>host.appendChild(createPhaseRow(part, decimals, bundle)));
+  if(!visible.length){
+    host.innerHTML = '<div class="tau-phase-empty">No sampled τ partitions at the current resolution.</div>';
+  }
+  updateTauHighlightNodeClasses();
+}
+
+function redrawAllStackedFigures(){
+  updateStackLegends();
+  drawRibbon();
+  if(gridStats){
+    for(let qi=0; qi<qVals.length; qi++){
+      for(let pi=0; pi<pVals.length; pi++){
+        const svgElem = el(`mini-${qi}-${pi}`);
+        if(svgElem) drawMiniRibbon(svgElem, gridStats[qi][pi]);
+      }
+    }
+  }
+  if(nSweep && nTauVals.length){
+    for(let N=nMax; N>=nMin; N--){
+      const svgElem = el(`nsvg-${N}`);
+      if(svgElem) drawNRibbon(svgElem, nSweep[N - nMin], nTauVals);
+    }
+  }
+  if(qSweep && qTauVals.length){
+    for(let qi=0; qi<qRangeVals.length; qi++){
+      const svgElem = el(`qsvg-${qi}`);
+      if(svgElem) drawNRibbon(svgElem, qSweep[qi], qTauVals);
+    }
+  }
+}
+
+
+    function log(msg){
+      const line=document.createElement('div');
+      line.innerHTML=msg;
+      const logEl=el('log');
+      if(!logEl) return;
+      logEl.appendChild(line);
+      logEl.scrollTop=logEl.scrollHeight;
+    }
+
+    function getParams(){
+      const p=Number(el('p').value);
+      const q=Number(el('q').value);
+      const N=Number(el('N').value);
+      const taus=el('tauList').value
+        .split(',')
+        .map(x=>Number(x.trim()))
+        .filter(x=>!Number.isNaN(x)&&x>=0&&x<=1);
+      const seed=parseSeed(el('seed').value.trim());
+      return {p,q,N,taus,seed};
+    }
+
+    function resetUI(){
+      const rowsEl = el('rows');
+      if(rowsEl) rowsEl.innerHTML='';
+      const logEl = el('log');
+      if(logEl) logEl.innerHTML='';
+      const ts = el('trueState'); if (ts) ts.textContent='—';
+      const rc = el('runConsts'); if (rc) rc.textContent='—';
+      const si = el('stepInfo');  if (si) si.textContent='—';
+      const host=el('aggBoxes'); if(host) host.innerHTML='';
+      const tc = el('totalCount'); if (tc) tc.textContent='0';
+    }
+
+    function clearAll(){
+      if(autoTimer){ clearInterval(autoTimer); autoTimer=null; }
+      communities=[];
+      resetUI();
+      resetTauSweep();
+      resetTauHighlights();
+      drawRibbon();
+      el('btn-step').disabled=true;
+      el('btn-auto').disabled=true;
+      el('btn-complete').disabled=true;
+      el('btn-runbatch').disabled=true;
+    }
+
+    function renderRows(){
+      const container=el('rows');
+      if(!container) return;
+      container.innerHTML='';
+      communities.forEach((c,ci)=>{
+        const wrap=document.createElement('div');
+        wrap.className='community';
+        const title=document.createElement('h3');
+        const cascadeText=c.cascadeIndex!==null
+          ?`<span style="color:var(--amber)">Cascade @ ${c.cascadeIndex+1}</span>`
+          :'<span class="muted" style="color:var(--ink-4)">—</span>';
+        title.innerHTML=`<span>Row ${ci+1} — τ=${c.tau.toFixed(2)}</span>${cascadeText}`;
+        wrap.appendChild(title);
+        const timeline=document.createElement('div');
+        timeline.className='timeline';
+        timeline.id=`timeline-${ci}`;
+        wrap.appendChild(timeline);
+        for(let k=0;k<params.N;k++){
+          const node=document.createElement('div');
+          node.className='agent';
+          node.textContent=k+1;
+          node.id=`c${c.idx}-agent-${k}`;
+          timeline.appendChild(node);
+        }
+        const mini=document.createElement('div');
+        mini.className='miniStats';
+        mini.id=`mini-${c.idx}`;
+        mini.textContent='A: 0  •  B: 0  •  Final: —';
+        wrap.appendChild(mini);
+        container.appendChild(wrap);
+      });
+    }
+
+    function updateMini(c){
+      const a=c.actions.filter(x=>x==='A').length;
+      const b=c.actions.filter(x=>x==='B').length;
+      const final=(a===b)?'Tie':(a>b?'A':'B');
+      el(`mini-${c.idx}`).textContent=`A: ${a}  •  B: ${b}  •  Final: ${final}`;
+    }
+
+    function makeAggBoxes(){
+      const host=el('aggBoxes');
+      if(!host) return;
+      host.innerHTML='';
+      communities.forEach(c=>{
+        const box=document.createElement('div');
+        box.className='aggBox';
+        box.id=`agg-${c.idx}`;
+        const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+        svg.setAttribute('id',`pie-${c.idx}`);
+        svg.setAttribute('width','70');
+        svg.setAttribute('height','70');
+        const meta=document.createElement('div');
+        meta.innerHTML=`<h4>τ=${c.tau.toFixed(2)}</h4>
+          <div style="display:grid;grid-template-columns: repeat(2,1fr);gap:6px;margin-top:6px;font-size:.85rem;color:var(--ink-3)">
+            <div>Cascade &amp; Correct: <b id="cc-${c.idx}">0</b></div>
+            <div>Cascade &amp; Incorrect: <b id="ci-${c.idx}">0</b></div>
+            <div>No-cascade &amp; Correct: <b id="ncc-${c.idx}">0</b></div>
+            <div>No-cascade &amp; Incorrect: <b id="nci-${c.idx}">0</b></div>
+            <div>Total: <b id="tot-${c.idx}">0</b></div>
+          </div>`;
+        box.appendChild(svg);
+        box.appendChild(meta);
+        host.appendChild(box);
+      });
+    }
+
+    function drawPie4(svgId, counts){
+      const {cc,ci,ncc,nci,total}=counts;
+      const svg=el(svgId);
+      if(!svg) return;
+      while(svg.firstChild) svg.removeChild(svg.firstChild);
+      const r=26,cx=35,cy=35,stroke=10;
+      const circ=2*Math.PI*r;
+      const segs=[cc,ci,ncc,nci];
+      const colors=['var(--good)','var(--bad)','var(--accent)','var(--neutral)'];
+      const bg=document.createElementNS('http://www.w3.org/2000/svg','circle');
+      bg.setAttribute('cx',cx);
+      bg.setAttribute('cy',cy);
+      bg.setAttribute('r',r);
+      bg.setAttribute('fill','none');
+      bg.setAttribute('stroke','var(--ring)');
+      bg.setAttribute('stroke-width',stroke);
+      svg.appendChild(bg);
+      if(!total||total<=0){
+        const txt=document.createElementNS('http://www.w3.org/2000/svg','text');
+        txt.setAttribute('x',cx);
+        txt.setAttribute('y',cy+4);
+        txt.setAttribute('text-anchor','middle');
+        txt.setAttribute('font-size','10');
+        txt.setAttribute('fill','#0f172a');
+        txt.textContent='0';
+        svg.appendChild(txt);
+        return;
+      }
+      let offset=0;
+      segs.forEach((v,i)=>{
+        const frac=v/total;
+        if(frac<=0) return;
+        const arc=frac*circ;
+        const ring=document.createElementNS('http://www.w3.org/2000/svg','circle');
+        ring.setAttribute('cx',cx);
+        ring.setAttribute('cy',cy);
+        ring.setAttribute('r',r);
+        ring.setAttribute('fill','none');
+        ring.setAttribute('stroke',colors[i]);
+        ring.setAttribute('stroke-width',stroke);
+        ring.setAttribute('stroke-dasharray',`${arc} ${circ-arc}`);
+        ring.setAttribute('stroke-dashoffset',`${-offset}`);
+        ring.setAttribute('transform',`rotate(-90 ${cx} ${cy})`);
+        svg.appendChild(ring);
+        offset+=arc;
+      });
+      const txt=document.createElementNS('http://www.w3.org/2000/svg','text');
+      txt.setAttribute('x',cx);
+      txt.setAttribute('y',cy+4);
+      txt.setAttribute('text-anchor','middle');
+      txt.setAttribute('font-size','10');
+      txt.setAttribute('fill','#0f172a');
+      txt.textContent=total;
+      svg.appendChild(txt);
+    }
+
+    function updateAggUI(){
+      const total=communities.reduce((s,c)=>s+c.agg.total,0);
+      const tc = el('totalCount');
+      if(tc) tc.textContent=String(total);
+      communities.forEach(c=>{
+        el(`cc-${c.idx}`).textContent=c.agg.cc;
+        el(`ci-${c.idx}`).textContent=c.agg.ci;
+        el(`ncc-${c.idx}`).textContent=c.agg.ncc;
+        el(`nci-${c.idx}`).textContent=c.agg.nci;
+        el(`tot-${c.idx}`).textContent=c.agg.total;
+        drawPie4(`pie-${c.idx}`,c.agg);
+      });
+    }
+
+    function currentL(c){
+      const k=c.revealedA-c.revealedB;
+      return Lprior + c.tau*k*lambda;
+    }
+    function markCascadeAt(c,i){
+      if(c.cascadeIndex!==null) return;
+      c.cascadeIndex=i;
+      const flag=document.createElement('div');
+      flag.className='cascade-flag';
+      flag.textContent=`Cascade @ ${i+1}`;
+      const node=el(`c${c.idx}-agent-${i}`);
+      node.style.position='relative';
+      node.appendChild(flag);
+    }
+
+    function stepOnce(){
+      if(stepIndex>=params.N) { finishRun(); return; }
+      const i=stepIndex;
+      communities.forEach(c=>{
+        const node=el(`c${c.idx}-agent-${i}`);
+        const sA=signals[i];
+        const Lprev=currentL(c);
+        const cascadeBefore=Math.abs(Lprev)>lambda+1e-12;
+        if(cascadeBefore) markCascadeAt(c,i);
+        const Lwith=Lprev + (sA? +lambda : -lambda);
+        const chooseA = (Math.abs(Lwith)<1e-12)? sA : (Lwith>0);
+        const action=chooseA?'A':'B';
+        c.actions[i]=action;
+        node.classList.add(sA?'signalA':'signalB');
+        node.classList.add(action);
+        node.title = [
+          `τ=${c.tau.toFixed(2)}`,
+          `k=r_A−r_B=${(c.revealedA-c.revealedB)}`,
+          `L_prev=L₀+τ·k·λ=${Lprev.toFixed(3)}`,
+          `signal=${sA?'A':'B'} (±λ=${(sA?'+':'−')}${lambda.toFixed(3)})`,
+          `L_with=${Lwith.toFixed(3)}`,
+          `vote=${action}${cascadeBefore?' (cascade)':''}`
+        ].join('\n');
+        if(!cascadeBefore){
+          if(sA) c.revealedA++;
+          else c.revealedB++;
+        }
+        log([
+          `row τ=${c.tau.toFixed(2)}`,
+          `i=${i+1}`,
+          `signal=${sA?'A':'B'}`,
+          `L_prev=${Lprev.toFixed(3)}`,
+          `L±λ=${Lwith.toFixed(3)}`,
+          `vote=<b>${action}</b>${cascadeBefore?' (cascade)':''}`
+        ].join(' · '));
+        const Lnext=currentL(c);
+        const cascadeNext=Math.abs(Lnext)>lambda+1e-12;
+        if(cascadeNext && c.cascadeIndex===null){
+          const nextIndex=Math.min(i+1,params.N-1);
+          markCascadeAt(c,nextIndex);
+        }
+        updateMini(c);
+      });
+      stepIndex++;
+      const si = el('stepInfo');
+      if(si) si.textContent=`Completed step #${i+1} / ${params.N}`;
+      if(stepIndex>=params.N) finishRun();
+    }
+
+    function summarizeRunToAgg(){
+      const trueFinal=stateA?'A':'B';
+      communities.forEach(c=>{
+        const a=c.actions.filter(x=>x==='A').length;
+        const b=c.actions.filter(x=>x==='B').length;
+        const final=a===b?(rng()<0.5?'A':'B'):(a>b?'A':'B');
+        const cascade=c.cascadeIndex!==null;
+        const success=final===trueFinal;
+        if(cascade&&success) c.agg.cc++;
+        else if(cascade&&!success) c.agg.ci++;
+        else if(!cascade&&success) c.agg.ncc++;
+        else c.agg.nci++;
+        c.agg.total++;
+      });
+      updateAggUI();
+    }
+
+    function finishRun(){
+      el('btn-step').disabled=true;
+      el('btn-auto').disabled=true;
+      el('btn-complete').disabled=true;
+      if(autoTimer){clearInterval(autoTimer); autoTimer=null;}
+      summarizeRunToAgg();
+    }
+
+    function initRun(){
+      params=getParams();
+      if(params.p<=0||params.p>=1||params.q<=0.5||params.q>=1||params.N<3||params.taus.length===0){
+        alert('Constraints: 0<p<1, 0.5<q<1, N≥3, and at least one τ in [0,1].');
+        return;
+      }
+      rng=mulberry32(params.seed);
+      stateA=rng()<params.p;
+      signals=Array.from({length:params.N},()=> (rng()<params.q)? stateA : !stateA );
+      lambda=Math.log(params.q/(1-params.q));
+      Lprior=Math.log(params.p/(1-params.p));
+      const sortedTaus=[...params.taus].sort((a,b)=>b-a);
+      communities=sortedTaus.map((tau,idx)=>({
+        idx,
+        tau,
+        actions:Array(params.N).fill(null),
+        revealedA:0,
+        revealedB:0,
+        cascadeIndex:null,
+        agg: (communities && communities[idx] && communities[idx].tau===tau)
+          ? communities[idx].agg
+          : {cc:0,ci:0,ncc:0,nci:0,total:0}
+      }));
+      stepIndex=0;
+      resetUI();
+      resetTauHighlights();
+      const ts = el('trueState'); if(ts) ts.textContent=stateA?'A':'B';
+      const rc = el('runConsts'); if(rc) rc.textContent=`λ=${lambda.toFixed(3)}, L₀=${Lprior.toFixed(3)}`;
+      renderRows();
+      makeAggBoxes();
+      updateAggUI();
+      el('btn-step').disabled=false;
+      el('btn-auto').disabled=false;
+      el('btn-complete').disabled=false;
+      el('btn-runbatch').disabled=false;
+      el('btn-clearall').disabled=false;
+      log(`<b>New run</b> — true state: <b>${stateA?'A':'B'}</b>, p=${params.p}, q=${params.q}, N=${params.N}, λ=${lambda.toFixed(3)}, L₀=${Lprior.toFixed(3)}`);
+      log(`Taus (sorted): ${sortedTaus.map(t=>t.toFixed(2)).join(', ')}`);
+      log('Rows share the same private signals; only τ differs.');
+    }
+
+    // --- Shared trial engine for batch & sweep ---
+    function simulateTrialOutcome(tau, sigs, sA, lam, L0, N, rngFn){
+      const rand = rngFn || rng;
+      let rA=0, rB=0, cascadeIndex=null;
+      let actionsA=0, actionsB=0;
+      for (let i=0;i<N;i++){
+        const Lprev = L0 + tau*(rA - rB)*lam;
+        const inCascade = Math.abs(Lprev) > lam + 1e-12;
+        if (inCascade && cascadeIndex===null) cascadeIndex=i;
+        const sAi = sigs[i];
+        const Lwith = Lprev + (sAi? +lam : -lam);
+        const chooseA = (Math.abs(Lwith)<1e-12) ? sAi : (Lwith>0);
+        const actionIsA = chooseA;
+        if (actionIsA) actionsA++;
+        else actionsB++;
+        if (!inCascade) {
+          if (sAi) rA++;
+          else rB++;
+        }
+      }
+      const final = actionsA===actionsB ? (rand()<0.5?'A':'B') : (actionsA>actionsB?'A':'B');
+      const cascade = cascadeIndex!==null;
+      const success = final === (sA?'A':'B');
+      const cIndex = cascade ? (cascadeIndex+1) : null; // 1-based
+      return {cascade, success, cIndex};
+    }
+
+    function simulateBatch(B){
+      if (!tauSweep) resetTauSweep();
+      for(let r=0;r<B;r++){
+        const sA=(rng()<params.p);
+        const sigs=Array.from({length:params.N},()=> (rng()<params.q)? sA : !sA );
+        const lam=Math.log(params.q/(1-params.q));
+        const L0=Math.log(params.p/(1-params.p));
+        communities.forEach(c=>{
+          const {cascade, success} = simulateTrialOutcome(c.tau, sigs, sA, lam, L0, params.N);
+          if (cascade && success) c.agg.cc++;
+          else if (cascade && !success) c.agg.ci++;
+          else if (!cascade && success) c.agg.ncc++;
+          else c.agg.nci++;
+          c.agg.total++;
+        });
+        for (let idx=0; idx<tauCols; idx++){
+          const tau = idx/(tauCols-1);
+          const {cascade, success, cIndex} = simulateTrialOutcome(tau, sigs, sA, lam, L0, params.N);
+          const bucket = tauSweep[idx];
+          if (cascade && success) bucket.cc++;
+          else if (cascade && !success) bucket.ci++;
+          else if (!cascade && success) bucket.ncc++;
+          else bucket.nci++;
+          bucket.total++;
+          if(cascade && cIndex!=null){
+            bucket.cIdxSum += cIndex;
+            bucket.cIdxSqSum += cIndex*cIndex;
+            bucket.cCount++;
+          }
+        }
+      }
+    }
+
+    // --- Download helpers (SVG/CSV/PNG) ---
+    function downloadFile(dataStr, mimeType, filename){
+      const blob = new Blob([dataStr], {type:mimeType});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function downloadSVG(svgString, filename){
+      downloadFile(svgString, 'image/svg+xml;charset=utf-8', filename);
+    }
+
+    function svgToPngFromString(svgString, filename, scale=2){
+      return new Promise((resolve,reject)=>{
+        const img = new Image();
+        const svgBlob = new Blob([svgString], {type:'image/svg+xml;charset=utf-8'});
+        const url = URL.createObjectURL(svgBlob);
+        img.onload = ()=>{
+          const w = img.width || 1200;
+          const h = img.height || 800;
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.round(w*scale);
+          canvas.height = Math.round(h*scale);
+          const ctx = canvas.getContext('2d');
+          ctx.setTransform(scale,0,0,scale,0,0);
+          ctx.drawImage(img,0,0);
+          canvas.toBlob((blob)=>{
+            URL.revokeObjectURL(url);
+            if(!blob){ reject(new Error('PNG export failed')); return; }
+            const dlUrl = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = dlUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(dlUrl);
+            resolve();
+          }, 'image/png');
+        };
+        img.onerror = (e)=>{ URL.revokeObjectURL(url); reject(e); };
+        img.src = url;
+      });
+    }
+
+    function svgElemToString(svgElem){
+      const clone = svgElem.cloneNode(true);
+      const map = {
+        'var(--good)': '#10b981',
+        'var(--bad)': '#ef4444',
+        'var(--accent)': '#60a5fa',
+        'var(--neutral)': '#4c1d95',
+        'var(--ring)': '#cbd5e1',
+        'var(--a-teal)': '#22d3ee',
+        'var(--a-red)': '#f87171'
+      };
+      const walk = clone.querySelectorAll('*');
+      walk.forEach(node=>{
+        ['fill','stroke'].forEach(attr=>{
+          const v = node.getAttribute && node.getAttribute(attr);
+          if(!v) return;
+          if(v.startsWith('var(') && map[v]) node.setAttribute(attr, map[v]);
+        });
+      });
+      clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
+      const serializer = new XMLSerializer();
+      return serializer.serializeToString(clone);
+    }
+
+    function drawPredictionGuideLine(svg, x1, x2, y, color='rgba(15,23,42,0.72)'){
+      const under=document.createElementNS('http://www.w3.org/2000/svg','line');
+      under.setAttribute('x1',x1); under.setAttribute('x2',x2);
+      under.setAttribute('y1',y);  under.setAttribute('y2',y);
+      under.setAttribute('stroke','rgba(255,255,255,0.85)');
+      under.setAttribute('stroke-width','3.2');
+      under.setAttribute('stroke-linecap','round');
+      under.setAttribute('pointer-events','none');
+      svg.appendChild(under);
+
+      const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1',x1); line.setAttribute('x2',x2);
+      line.setAttribute('y1',y);  line.setAttribute('y2',y);
+      line.setAttribute('stroke',color);
+      line.setAttribute('stroke-width','1.25');
+      line.setAttribute('stroke-dasharray','5 4');
+      line.setAttribute('stroke-linecap','round');
+      line.setAttribute('opacity','0.92');
+      line.setAttribute('pointer-events','none');
+      svg.appendChild(line);
+    }
+
+    function drawRibbonThresholds(svg, bundle, left, top, plotWidth, height){
+      if(!showPhaseCutoffs || !bundle?.partitions?.length) return;
+      bundle.partitions
+        .map(part=>part.threshold)
+        .filter(v=>Number.isFinite(v))
+        .forEach(tau=>{
+          const x = left + clamp01(tau) * plotWidth;
+          const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+          line.setAttribute('x1',x); line.setAttribute('x2',x);
+          line.setAttribute('y1',top); line.setAttribute('y2',top+height);
+          line.setAttribute('stroke','#94a3b8');
+          line.setAttribute('stroke-width','1');
+          line.setAttribute('stroke-dasharray','4 5');
+          line.setAttribute('opacity','0.6');
+          line.setAttribute('pointer-events','none');
+          svg.appendChild(line);
+        });
+    }
+
+    function drawRibbonPredictionOverlay(svg, bundle, left, top, plotWidth, height){
+      if(!showAnalyticProfiles || !bundle?.partitions?.length) return;
+      bundle.partitions.forEach(part=>{
+        const predicted = part.predicted;
+        if(!predicted) return;
+        const x1 = left + clamp01(part.start) * plotWidth;
+        const x2 = left + clamp01(part.end) * plotWidth;
+        if(x2 - x1 <= 0.5) return;
+        const counts = getStackCounts(predicted);
+        let cumulative = 0;
+        counts.slice(0,-1).forEach(seg=>{
+          cumulative += seg.value || 0;
+          const y = top + height - clamp01(cumulative) * height;
+          drawPredictionGuideLine(svg, x1, x2, y);
+        });
+      });
+    }
+
+    function drawOrderPredictionSteps(svg, bundle, left, top, plotWidth, height){
+      if(!showAnalyticProfiles || !bundle?.partitions?.length) return;
+      function drawStep(field, color){
+        bundle.partitions.forEach(part=>{
+          const predicted = part.predicted;
+          if(!predicted) return;
+          const x1 = left + clamp01(part.start) * plotWidth;
+          const x2 = left + clamp01(part.end) * plotWidth;
+          if(x2 - x1 <= 0.5) return;
+          const value = field==='cascade' ? predicted.pCascade : predicted.pCorrect;
+          const y = top + height - clamp01(value) * height;
+          const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+          line.setAttribute('x1',x1); line.setAttribute('x2',x2);
+          line.setAttribute('y1',y); line.setAttribute('y2',y);
+          line.setAttribute('stroke',color);
+          line.setAttribute('stroke-width','1.7');
+          line.setAttribute('stroke-dasharray','6 4');
+          line.setAttribute('stroke-linecap','round');
+          line.setAttribute('opacity','0.88');
+          line.setAttribute('pointer-events','none');
+          svg.appendChild(line);
+        });
+      }
+      drawStep('cascade', 'var(--ink-2)');
+      drawStep('correct', 'var(--good)');
+    }
+
+    // --- Tab 1: Derived order-parameter plot over τ ---
+    function drawCombinedOrderPlot(){
+      const svg = el('orderPlot');
+      const wrap = svg ? (svg.parentElement || el('ribbonWrap')) : null;
+      if(!svg || !wrap) return;
+
+      const left=46, right=20, top=12, bottom=36;
+      const width = Math.max(520, (wrap.clientWidth||740) - 0);
+      const height = 220;
+      const W = width;
+      const H = height - top - bottom;
+
+      svg.setAttribute('width', W);
+      svg.setAttribute('height', height);
+      svg.setAttribute('viewBox', `0 0 ${W} ${height}`);
+      while(svg.firstChild) svg.removeChild(svg.firstChild);
+
+      const axisY=document.createElementNS('http://www.w3.org/2000/svg','line');
+      axisY.setAttribute('x1',left); axisY.setAttribute('x2',left);
+      axisY.setAttribute('y1',top);  axisY.setAttribute('y2',top+H);
+      axisY.setAttribute('stroke','var(--ring)'); axisY.setAttribute('stroke-width','1');
+      svg.appendChild(axisY);
+
+      const axisX=document.createElementNS('http://www.w3.org/2000/svg','line');
+      axisX.setAttribute('x1',left); axisX.setAttribute('x2',W-right);
+      axisX.setAttribute('y1',top+H); axisX.setAttribute('y2',top+H);
+      axisX.setAttribute('stroke','var(--ring)'); axisX.setAttribute('stroke-width','1');
+      svg.appendChild(axisX);
+
+      const steps=4;
+      for(let j=0;j<=steps;j++){
+        const y = top + H - (H*j/steps);
+        const tick=document.createElementNS('http://www.w3.org/2000/svg','line');
+        tick.setAttribute('x1',left-4); tick.setAttribute('x2',left);
+        tick.setAttribute('y1',y); tick.setAttribute('y2',y);
+        tick.setAttribute('stroke','var(--ring)'); tick.setAttribute('stroke-width','1');
+        svg.appendChild(tick);
+
+        const lab=document.createElementNS('http://www.w3.org/2000/svg','text');
+        lab.setAttribute('x',left-8); lab.setAttribute('y',y+4);
+        lab.setAttribute('text-anchor','end');
+        lab.setAttribute('font-size','12'); lab.setAttribute('fill','#334155');
+        lab.textContent=(j/steps).toFixed(2);
+        svg.appendChild(lab);
+      }
+
+      [0,0.5,1].forEach(t=>{
+        const x = left + t*((W-right)-left);
+        const tick=document.createElementNS('http://www.w3.org/2000/svg','line');
+        tick.setAttribute('x1',x); tick.setAttribute('x2',x);
+        tick.setAttribute('y1',top+H); tick.setAttribute('y2',top+H+5);
+        tick.setAttribute('stroke','var(--ring)'); tick.setAttribute('stroke-width','1');
+        svg.appendChild(tick);
+
+        const lab=document.createElementNS('http://www.w3.org/2000/svg','text');
+        lab.setAttribute('x',x); lab.setAttribute('y',top+H+18);
+        lab.setAttribute('text-anchor','middle');
+        lab.setAttribute('font-size','12'); lab.setAttribute('fill','#334155');
+        lab.textContent=t.toFixed(2);
+        svg.appendChild(lab);
+      });
+
+      const xLab=document.createElementNS('http://www.w3.org/2000/svg','text');
+      xLab.setAttribute('x', (left+(W-right))/2);
+      xLab.setAttribute('y', height-10);
+      xLab.setAttribute('text-anchor','middle');
+      xLab.setAttribute('font-size','14');
+      xLab.setAttribute('fill','#334155');
+      xLab.textContent='τ';
+      svg.appendChild(xLab);
+
+      drawTauHighlightBands(svg, left, top, (W-right)-left, H, {fill:'rgba(245,158,11,0.10)', stroke:'rgba(217,119,6,0.55)', minWidth:4});
+
+      const NVal = params?.N || Number(el('N')?.value) || 0;
+      const partitionBundle = NVal > 0 ? getTauPartitionBundle(NVal) : null;
+      if(showPhaseCutoffs && NVal > 2){
+        (partitionBundle?.partitions || [])
+          .map(part=>part.threshold)
+          .filter(v=>Number.isFinite(v))
+          .forEach(tau=>{
+            const x = left + tau*((W-right)-left);
+            const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+            line.setAttribute('x1',x); line.setAttribute('x2',x);
+            line.setAttribute('y1',top); line.setAttribute('y2',top+H);
+            line.setAttribute('stroke','#94a3b8');
+            line.setAttribute('stroke-width','1');
+            line.setAttribute('stroke-dasharray','4 5');
+            line.setAttribute('opacity','0.7');
+            line.setAttribute('pointer-events','none');
+            svg.appendChild(line);
+          });
+      }
+
+      drawOrderPredictionSteps(svg, partitionBundle, left, top, (W-right)-left, H);
+
+      const cascadePts=[];
+      const correctPts=[];
+      const n = tauCols;
+      for(let i=0;i<n;i++){
+        const tau = i/(n-1);
+        const d = tauSweep ? tauSweep[i] : null;
+        const pC = (d && d.total>0) ? probCascade(d) : 0;
+        const pA = (d && d.total>0) ? probCorrect(d) : 0;
+        const x = left + tau*((W-right)-left);
+        cascadePts.push([x, top + H - (Math.max(0,Math.min(1,pC))*H), tau, pC]);
+        correctPts.push([x, top + H - (Math.max(0,Math.min(1,pA))*H), tau, pA]);
+      }
+
+      function addPolyline(points, stroke){
+        const pl=document.createElementNS('http://www.w3.org/2000/svg','polyline');
+        pl.setAttribute('fill','none');
+        pl.setAttribute('stroke',stroke);
+        pl.setAttribute('stroke-width','2.2');
+        pl.setAttribute('stroke-linejoin','round');
+        pl.setAttribute('stroke-linecap','round');
+        pl.setAttribute('points',points.map(p=>`${p[0].toFixed(2)},${p[1].toFixed(2)}`).join(' '));
+        svg.appendChild(pl);
+      }
+      if(showSimulatedData){
+        addPolyline(cascadePts, 'var(--ink-2)');
+        addPolyline(correctPts, 'var(--good)');
+      }
+
+      updateLineLegendState();
+      const tip=document.getElementById('ribbonTip');
+      function showTip(evt, idx){
+        if(!tip) return;
+        const tau = cascadePts[idx][2];
+        const pC = cascadePts[idx][3];
+        const pA = correctPts[idx][3];
+        const pred = showAnalyticProfiles ? computeExactOutcomeProfileForTau(tau, params?.p ?? Number(el('p')?.value) ?? 0.5, params?.q ?? Number(el('q')?.value) ?? 0.7, params?.N ?? Number(el('N')?.value) ?? 0) : null;
+        const simulatedHTML = showSimulatedData ? `<div class="tooltip-stack-row"><span class="tooltip-stack-label"><span class="tooltip-dot" style="background:var(--ink-2)"></span>Simulated P(cascade)</span><span><b>${pC.toFixed(3)}</b></span></div>
+          <div class="tooltip-stack-row"><span class="tooltip-stack-label"><span class="tooltip-dot" style="background:var(--good)"></span>Simulated P(accurate aggregate vote)</span><span><b>${pA.toFixed(3)}</b></span></div>` : '';
+        const predHTML = pred ? `<div style="margin-top:6px;font-size:.78rem;color:#475569">Exact value at this τ</div>
+          <div class="tooltip-stack-row"><span class="tooltip-stack-label"><span class="tooltip-dot" style="background:var(--ink-2)"></span>Predicted P(cascade)</span><span><b>${pred.pCascade.toFixed(3)}</b></span></div>
+          <div class="tooltip-stack-row"><span class="tooltip-stack-label"><span class="tooltip-dot" style="background:var(--good)"></span>Predicted P(accurate aggregate vote)</span><span><b>${pred.pCorrect.toFixed(3)}</b></span></div>` : '';
+        const html = `<div style="font-weight:700;margin-bottom:4px">τ = ${tau.toFixed(tauCols>=1000?3:2)}</div>${simulatedHTML || predHTML ? '' : '<div style="color:#475569">No data layers are currently visible.</div>'}${simulatedHTML}${predHTML}`;
+        tip.innerHTML = html;
+        tip.style.display='block';
+        tip.style.left=(evt.clientX+12)+'px';
+        tip.style.top=(evt.clientY+12)+'px';
+      }
+      function hideTip(){
+        if(!tip) return;
+        tip.style.display='none';
+      }
+
+      const dot1=document.createElementNS('http://www.w3.org/2000/svg','circle');
+      dot1.setAttribute('r','4.2');
+      dot1.setAttribute('fill','var(--ink-2)');
+      dot1.setAttribute('stroke','#ffffff');
+      dot1.setAttribute('stroke-width','1');
+      dot1.style.display='none';
+      svg.appendChild(dot1);
+
+      const dot2=document.createElementNS('http://www.w3.org/2000/svg','circle');
+      dot2.setAttribute('r','4.2');
+      dot2.setAttribute('fill','var(--good)');
+      dot2.setAttribute('stroke','#ffffff');
+      dot2.setAttribute('stroke-width','1');
+      dot2.style.display='none';
+      svg.appendChild(dot2);
+
+      const hoverLine=document.createElementNS('http://www.w3.org/2000/svg','line');
+      hoverLine.setAttribute('stroke','rgba(15,23,42,0.25)');
+      hoverLine.setAttribute('stroke-width','1');
+      hoverLine.setAttribute('pointer-events','none');
+      hoverLine.style.display='none';
+      svg.appendChild(hoverLine);
+
+      const hit=document.createElementNS('http://www.w3.org/2000/svg','rect');
+      hit.setAttribute('x',left);
+      hit.setAttribute('y',top);
+      hit.setAttribute('width',(W-right)-left);
+      hit.setAttribute('height',H);
+      hit.setAttribute('fill','transparent');
+      hit.addEventListener('mousemove',(e)=>{
+        const rect = svg.getBoundingClientRect();
+        const px = e.clientX - rect.left;
+        const t = (px - left)/(((W-right)-left)||1);
+        const cl = Math.max(0,Math.min(1,t));
+        const idx = Math.round(cl*(tauCols-1));
+        const p1 = cascadePts[idx];
+        const p2 = correctPts[idx];
+        hoverLine.style.display='block';
+        hoverLine.setAttribute('x1',p1[0]);
+        hoverLine.setAttribute('x2',p1[0]);
+        hoverLine.setAttribute('y1',top);
+        hoverLine.setAttribute('y2',top+H);
+        if(showSimulatedData){
+          dot1.style.display='block';
+          dot1.setAttribute('cx',p1[0]);
+          dot1.setAttribute('cy',p1[1]);
+          dot2.style.display='block';
+          dot2.setAttribute('cx',p2[0]);
+          dot2.setAttribute('cy',p2[1]);
+        } else {
+          dot1.style.display='none';
+          dot2.style.display='none';
+        }
+        showTip(e, idx);
+      });
+      hit.addEventListener('mouseleave',()=>{
+        dot1.style.display='none';
+        dot2.style.display='none';
+        hoverLine.style.display='none';
+        hideTip();
+      });
+      svg.appendChild(hit);
+    }
+
+    function drawTab1SummaryPlots(){
+      drawCombinedOrderPlot();
+    }
+
+function exportRibbonSVG(){
+      const svg = el('ribbon');
+      if(!svg){ alert('Ribbon figure not found.'); return; }
+      const clone = svg.cloneNode(true);
+      const hi = clone.querySelector('#ribbonHi');
+      if(hi) hi.parentNode.removeChild(hi);
+      const map = {
+        'var(--good)': '#10b981',
+        'var(--bad)': '#ef4444',
+        'var(--accent)': '#60a5fa',
+        'var(--neutral)': '#4c1d95',
+        'var(--ring)': '#cbd5e1'
+      };
+      const walk = clone.querySelectorAll('*');
+      walk.forEach(node=>{
+        ['fill','stroke'].forEach(attr=>{
+          const v = node.getAttribute && node.getAttribute(attr);
+          if(!v) return;
+          if(v.startsWith('var(') && map[v]) node.setAttribute(attr, map[v]);
+        });
+      });
+      clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
+      const serializer = new XMLSerializer();
+      const svgStr = serializer.serializeToString(clone);
+      downloadSVG(svgStr, 'tau_sweep.svg');
+    }
+
+    function exportRibbonCSV(){
+      if(!tauSweep){
+        alert('No τ sweep data to export.');
+        return;
+      }
+      const rows = ['tau,total,cc,ci,ncc,nci,cascade_count,mean_cascade_index,variance_cascade_index'];
+      for(let idx=0; idx<tauCols; idx++){
+        const tau = idx/(tauCols-1);
+        const d = tauSweep[idx];
+        const total = d.total || 0;
+        const cCount = d.cCount || 0;
+        let mean = '';
+        let variance = '';
+        if(cCount>0){
+          const m = d.cIdxSum / cCount;
+          const v = d.cIdxSqSum / cCount - m*m;
+          mean = m.toFixed(6);
+          variance = v.toFixed(6);
+        }
+        rows.push([
+          tau.toFixed(6),
+          total,
+          d.cc||0,
+          d.ci||0,
+          d.ncc||0,
+          d.nci||0,
+          cCount,
+          mean,
+          variance
+        ].join(','));
+      }
+      downloadFile(rows.join('\n'), 'text/csv;charset=utf-8', 'tau_sweep_data.csv');
+    }
+
+    function exportRowsSVG(){
+      if(!communities || !params || !signals){
+        alert('Run at least one simulation before exporting the community snapshot.');
+        return;
+      }
+      const rows = communities.length;
+      const N = params.N;
+      if(!rows || !N){ alert('No communities to export.'); return; }
+      const tileW = 22, tileH = 22, hGap = 6, vGap = 16;
+      const marginLeft = 80, marginTop = 30, marginRight = 20, marginBottom = 30;
+      const width = marginLeft + N*(tileW + hGap) - hGap + marginRight;
+      const height = marginTop + rows*(tileH + vGap) - vGap + marginBottom;
+      const sb = [];
+      sb.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`);
+      sb.push('<style> text{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif} </style>');
+      sb.push(`<rect x="0" y="0" width="${width}" height="${height}" fill="#ffffff"/>`);
+      sb.push(`<text x="${marginLeft}" y="20" font-size="12" fill="#0f172a">Private evidence (fill), public vote (border)</text>`);
+      communities.forEach((c,rowIdx)=>{
+        const y = marginTop + rowIdx*(tileH + vGap);
+        sb.push(`<text x="10" y="${y + tileH*0.7}" font-size="11" fill="#0f172a">τ=${c.tau.toFixed(2)}</text>`);
+        if(c.cascadeIndex !== null){
+          const cx = marginLeft + c.cascadeIndex*(tileW + hGap) + tileW/2;
+          sb.push(`<text x="${cx}" y="${y - 6}" font-size="9" text-anchor="middle" fill="#92400e">cascade</text>`);
+        }
+        for(let i=0;i<N;i++){
+          const x = marginLeft + i*(tileW + hGap);
+          const sA = signals[i];
+          const action = c.actions[i];
+          let fill = '#ffffff';
+          if(typeof sA === 'boolean'){
+            fill = sA ? '#e0f2fe' : '#fee2e2';
+          }
+          let stroke = '#cbd5e1';
+          if(action === 'A') stroke = '#22d3ee';
+          else if(action === 'B') stroke = '#f87171';
+          const strokeWidth = action ? 2.4 : 1;
+          sb.push(`<rect x="${x}" y="${y}" width="${tileW}" height="${tileH}" rx="5" ry="5" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}"/>`);
+        }
+      });
+      sb.push('</svg>');
+      downloadSVG(sb.join(''), 'communities_snapshot.svg');
+    }
+
+    // --- Ribbon chart (Tab 1) ---
+    function drawRibbon(opts={}){
+      const svg=el('ribbon');
+      if(!svg) return;
+      while(svg.firstChild) svg.removeChild(svg.firstChild);
+
+      const left=40,right=20,top=10,H=ribbonGeom.height,bottom=ribbonGeom.bottom;
+      const wrap=el('ribbonWrap');
+      const wrapW=(wrap&&wrap.clientWidth)?wrap.clientWidth:740;
+      const cols=tauCols;
+      const plotWidth=Math.max(400, wrapW-(left+right));
+      const colWidth=plotWidth/cols;
+      const W=left+plotWidth+right;
+      const decimals = cols>=10000 ? 4 : cols>=1000 ? 3 : 2;
+      svg.setAttribute('width',W);
+      svg.setAttribute('height',H+top+bottom);
+
+      const axis=document.createElementNS('http://www.w3.org/2000/svg','line');
+      axis.setAttribute('x1',left);
+      axis.setAttribute('y1',top);
+      axis.setAttribute('x2',left);
+      axis.setAttribute('y2',H+top);
+      axis.setAttribute('stroke','var(--ring)');
+      axis.setAttribute('stroke-width','1');
+      svg.appendChild(axis);
+
+      const xAxis=document.createElementNS('http://www.w3.org/2000/svg','line');
+      xAxis.setAttribute('x1',left);
+      xAxis.setAttribute('y1',H+top);
+      xAxis.setAttribute('x2',W-right);
+      xAxis.setAttribute('y2',H+top);
+      xAxis.setAttribute('stroke','var(--ring)');
+      xAxis.setAttribute('stroke-width','1');
+      svg.appendChild(xAxis);
+
+      let maxTotal = 0;
+      if (tauSweep) {
+        for (let i = 0; i < cols; i++) {
+          const d = tauSweep[i];
+          if (d.total > maxTotal) maxTotal = d.total;
+        }
+      }
+      if (maxTotal <= 0) maxTotal = 1;
+
+      const steps = 4;
+      for (let j = 0; j <= steps; j++) {
+        const y = top + H - (H * j / steps);
+        const tick = document.createElementNS('http://www.w3.org/2000/svg','line');
+        tick.setAttribute('x1', left - 4);
+        tick.setAttribute('x2', left);
+        tick.setAttribute('y1', y);
+        tick.setAttribute('y2', y);
+        tick.setAttribute('stroke','var(--ring)');
+        tick.setAttribute('stroke-width','1');
+        svg.appendChild(tick);
+
+        const lab = document.createElementNS('http://www.w3.org/2000/svg','text');
+        lab.setAttribute('x', left - 8);
+        lab.setAttribute('y', y + 3);
+        lab.setAttribute('text-anchor','end');
+        lab.setAttribute('font-size','14');
+        lab.setAttribute('fill','#334155');
+        const val = Math.round(maxTotal * j / steps);
+        lab.textContent = val;
+        svg.appendChild(lab);
+      }
+
+      for(let t = 0; t <= 10; t++){
+        const x = left + (t/10) * plotWidth;
+        const tick = document.createElementNS('http://www.w3.org/2000/svg','line');
+        tick.setAttribute('x1', x);
+        tick.setAttribute('x2', x);
+        tick.setAttribute('y1', H + top);
+        tick.setAttribute('y2', H + top + 5);
+        tick.setAttribute('stroke','var(--ring)');
+        tick.setAttribute('stroke-width','1');
+        svg.appendChild(tick);
+
+        const lab = document.createElementNS('http://www.w3.org/2000/svg','text');
+        lab.setAttribute('x', x);
+        lab.setAttribute('y', H + top + 16);
+        lab.setAttribute('text-anchor','middle');
+        lab.setAttribute('font-size','14');
+        lab.setAttribute('fill','#334155');
+        lab.textContent = (t/10).toFixed(1);
+        svg.appendChild(lab);
+      }
+
+      const xLab=document.createElementNS('http://www.w3.org/2000/svg','text');
+      xLab.setAttribute('x',(left+(W-right))/2);
+      xLab.setAttribute('y',H+top+32);
+      xLab.setAttribute('text-anchor','middle');
+      xLab.setAttribute('font-size','16');
+      xLab.setAttribute('fill','#334155');
+      xLab.textContent='τ';
+      svg.appendChild(xLab);
+
+      if(!tauSweep) return;
+
+      if(showSimulatedData){
+        for(let idx=0; idx<cols; idx++){
+          const x = left + idx * colWidth;
+          const d = tauSweep[idx];
+          const total = d.total;
+          if (!total) continue;
+          const counts = getStackCounts(d);
+          let y = top + H;
+          for(const seg of counts){
+            const h = (seg.value / maxTotal) * H;
+            if(h <= 0) continue;
+            const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
+            rect.setAttribute('x',x);
+            rect.setAttribute('y',y-h);
+            rect.setAttribute('width',colWidth);
+            rect.setAttribute('height',h);
+            rect.setAttribute('fill',seg.color);
+            svg.appendChild(rect);
+            y-=h;
+          }
+        }
+      }
+
+      const NVal = params?.N || Number(el('N')?.value) || 0;
+      const partitionBundle = (hoverScope==='phase' || showAnalyticProfiles || showPhaseCutoffs) && NVal > 0 ? getTauPartitionBundle(NVal) : null;
+      drawRibbonThresholds(svg, partitionBundle, left, top, plotWidth, H);
+      drawRibbonPredictionOverlay(svg, partitionBundle, left, top, plotWidth, H);
+      drawTauHighlightBands(svg, left, top, plotWidth, H, {fill:'rgba(245,158,11,0.16)', stroke:'rgba(217,119,6,0.75)', minWidth:Math.max(3,colWidth)});
+
+      const hi=document.createElementNS('http://www.w3.org/2000/svg','rect');
+      hi.setAttribute('id','ribbonHi');
+      hi.setAttribute('fill','none');
+      hi.setAttribute('stroke','rgba(15,23,42,0.6)');
+      hi.setAttribute('stroke-width','1');
+      hi.setAttribute('pointer-events','none');
+      svg.appendChild(hi);
+
+      const tip=document.getElementById('ribbonTip');
+      const phaseHoverBundle = hoverScope==='phase' ? partitionBundle : null;
+      let currentHover = {key:'', ranges:[], idx:-1};
+
+      function tauBinRange(idx){
+        const tau = idx / ((cols-1) || 1);
+        const step = 1 / Math.max(1, cols-1);
+        return {start: Math.max(0, tau - step/2), end: Math.min(1, tau + step/2)};
+      }
+      function showTipHTML(evt, html){
+        if(!tip) return;
+        tip.innerHTML = html;
+        tip.style.display='block';
+        tip.style.left=(evt.clientX+12)+'px';
+        tip.style.top=(evt.clientY+12)+'px';
+      }
+      function showTauBin(idx, evt){
+        idx=Math.max(0,Math.min(cols-1,idx|0));
+        const d=tauSweep[idx];
+        const total=d.total;
+        let meanTxt='—', varTxt='—';
+        if(d.cCount>0){
+          const m=d.cIdxSum/d.cCount;
+          const v=d.cIdxSqSum/d.cCount - m*m;
+          meanTxt=m.toFixed(2);
+          varTxt=v.toFixed(2);
+        }
+        const tauValue = idx / ((cols-1)||1);
+        const exactTau = showAnalyticProfiles ? computeExactOutcomeProfileForTau(tauValue, params?.p ?? Number(el('p')?.value) ?? 0.5, params?.q ?? Number(el('q')?.value) ?? 0.7, params?.N ?? Number(el('N')?.value) ?? 0) : null;
+        const part = partitionBundle ? findTauPartitionForValue(tauValue, partitionBundle.partitions) : null;
+        const phaseInfo = ((showAnalyticProfiles || showPhaseCutoffs) && part) ? `<div style="color:#334155">Phase <b>P${part.phase}</b> · ${part.impossible ? 'no reachable cascade barrier' : `barrier <b>m = ${part.minMargin}</b>`}</div>` : '';
+        const simulatedBlock = showSimulatedData ? `${buildStackTooltipRows(d,total)}
+          <div style="margin-top:4px;color:#334155">Total: ${total||0}</div>
+          <div style="margin-top:4px;color:#334155">Mean cascade start index: <b>${meanTxt}</b></div>
+          <div style="color:#334155">Variance of cascade start: <b>${varTxt}</b></div>` : '';
+        const phaseProfileBlock = part ? `${showSimulatedData ? buildPhaseMetricTooltipRows(part, partitionBundle, 'simulated', 'phase mean') : ''}${showAnalyticProfiles ? buildPhaseMetricTooltipRows(part, partitionBundle, 'predicted', 'phase prediction') : ''}` : '';
+        const predictedBlock = exactTau ? `<div style="margin-top:6px;font-size:.78rem;color:#475569">Exact value at this τ</div><div class="tooltip-stack-row"><span class="tooltip-stack-label">P(cascade)</span><span><b>${exactTau.pCascade.toFixed(3)}</b></span></div><div class="tooltip-stack-row"><span class="tooltip-stack-label">P(correct)</span><span><b>${exactTau.pCorrect.toFixed(3)}</b></span></div>` : '';
+        const html=`<div style="font-weight:700;margin-bottom:4px">τ = ${tauLabelForIndex(idx, cols)}${total?'':' (no data)'}</div>${phaseInfo}${simulatedBlock || phaseProfileBlock || predictedBlock ? '' : '<div style="color:#475569">No data layers are currently visible.</div>'}${simulatedBlock}${phaseProfileBlock}${predictedBlock}`;
+        showTipHTML(evt, html);
+        const xCol=left+idx*colWidth;
+        hi.setAttribute('fill','none');
+        hi.setAttribute('stroke','rgba(15,23,42,0.6)');
+        hi.setAttribute('x',xCol);
+        hi.setAttribute('y',top-0.5);
+        hi.setAttribute('width',colWidth);
+        hi.setAttribute('height',H+1);
+        currentHover = {key:`tau-bin-${idx}`, ranges:[tauBinRange(idx)], idx};
+      }
+      function showPhase(idx, evt){
+        const tau = idx / ((cols-1) || 1);
+        const part = findTauPartitionForValue(tau, phaseHoverBundle?.partitions || []);
+        if(!part){
+          showTauBin(idx, evt);
+          return;
+        }
+        const key = phaseRowKey(part, phaseHoverBundle.decimals);
+        const ranges = [{start:part.start, end:part.end}];
+        showTipHTML(evt, buildPhaseTooltipHTML(part, tau, phaseHoverBundle.decimals, phaseHoverBundle));
+        const guideW = Math.max(2, Math.min(4, colWidth * 0.5));
+        const xCenter = left + (idx + 0.5) * colWidth;
+        hi.setAttribute('fill','rgba(15,23,42,0.10)');
+        hi.setAttribute('stroke','rgba(15,23,42,0.45)');
+        hi.setAttribute('x',Math.max(left, Math.min(left + plotWidth - guideW, xCenter - guideW/2)));
+        hi.setAttribute('y',top-0.5);
+        hi.setAttribute('width',guideW);
+        hi.setAttribute('height',H+1);
+        if(currentHover.key !== key){
+          currentHover = {key, ranges, part, idx};
+          setHoverTauHighlights(ranges, key);
+        } else {
+          currentHover.idx = idx;
+        }
+      }
+      function hideTip(){
+        if(tip) tip.style.display='none';
+        hi.setAttribute('width','0');
+        hi.setAttribute('fill','none');
+        hi.setAttribute('stroke','rgba(15,23,42,0.6)');
+      }
+
+      const hit=document.createElementNS('http://www.w3.org/2000/svg','rect');
+      hit.setAttribute('x',left);
+      hit.setAttribute('y',top);
+      hit.setAttribute('width',plotWidth);
+      hit.setAttribute('height',H);
+      hit.setAttribute('fill','transparent');
+      hit.addEventListener('mousemove',(e)=>{
+        const rect = svg.getBoundingClientRect();
+        const px = e.clientX - rect.left;
+        const t = (px - left)/(plotWidth||1);
+        const cl = Math.max(0,Math.min(1,t));
+        const idx = Math.round(cl*(cols-1));
+        if(hoverScope==='phase') showPhase(idx,e);
+        else showTauBin(idx,e);
+      });
+      hit.addEventListener('mouseleave',()=>{
+        if(hoverScope==='phase' && currentHover.key){
+          clearHoverTauHighlights(currentHover.key);
+        }
+        currentHover = {key:'', ranges:[], idx:-1};
+        hideTip();
+      });
+      hit.addEventListener('click',(e)=>{
+        if(!currentHover.key || !currentHover.ranges?.length) return;
+        e.preventDefault();
+        togglePinnedTauHighlights(currentHover.ranges, currentHover.key);
+      });
+      svg.appendChild(hit);
+
+      // Keep Tab 1 summary line plots and phase analysis synced with the ribbon bins
+      drawTab1SummaryPlots();
+      if(!opts.skipMetaPanels){
+        renderTauPartitions();
+      }
+}
+
+    // --- Tab 2 grid logic (unchanged) ---
+    let gridStats = null;
+    let pVals = [];
+    let qVals = [];
+
+    function makeRange(start, step, end){
+      const out=[];
+      if(step<=0) return out;
+      for(let x=start; x<=end+1e-9; x+=step){
+        out.push(+x.toFixed(6));
+      }
+      return out;
+    }
+
+    function drawMiniRibbon(svgElem, stats){
+      const cols = stats.length;
+      const width = 320;
+      const height = 220;
+      svgElem.setAttribute('width', width);
+      svgElem.setAttribute('height', height);
+      svgElem.setAttribute('viewBox', `0 0 ${width} ${height}`);
+      while(svgElem.firstChild) svgElem.removeChild(svgElem.firstChild);
+
+      const left = 26, right=10, top=10, bottom=24;
+      const H = height - top - bottom;
+      const plotWidth = width - left - right;
+      const colWidth = plotWidth / cols;
+
+      const bg=document.createElementNS('http://www.w3.org/2000/svg','rect');
+      bg.setAttribute('x',0);
+      bg.setAttribute('y',0);
+      bg.setAttribute('width',width);
+      bg.setAttribute('height',height);
+      bg.setAttribute('fill','#ffffff');
+      svgElem.appendChild(bg);
+
+      const axis=document.createElementNS('http://www.w3.org/2000/svg','line');
+      axis.setAttribute('x1',left);
+      axis.setAttribute('y1',top);
+      axis.setAttribute('x2',left);
+      axis.setAttribute('y2',top+H);
+      axis.setAttribute('stroke','var(--ring)');
+      axis.setAttribute('stroke-width','1');
+      svgElem.appendChild(axis);
+
+      const xAxis=document.createElementNS('http://www.w3.org/2000/svg','line');
+      xAxis.setAttribute('x1',left);
+      xAxis.setAttribute('y1',top+H);
+      xAxis.setAttribute('x2',left+plotWidth);
+      xAxis.setAttribute('y2',top+H);
+      xAxis.setAttribute('stroke','var(--ring)');
+      xAxis.setAttribute('stroke-width','1');
+      svgElem.appendChild(xAxis);
+
+      let maxTotal = 0;
+      for(let i=0;i<cols;i++){
+        if(stats[i].total>maxTotal) maxTotal = stats[i].total;
+      }
+      if(maxTotal<=0){
+        const txt=document.createElementNS('http://www.w3.org/2000/svg','text');
+        txt.setAttribute('x',width/2);
+        txt.setAttribute('y',height/2+3);
+        txt.setAttribute('text-anchor','middle');
+        txt.setAttribute('font-size','10');
+        txt.setAttribute('fill','#9ca3af');
+        txt.textContent='no data';
+        svgElem.appendChild(txt);
+        return;
+      }
+
+      const steps=3;
+      for(let j=0;j<=steps;j++){
+        const y = top + H - (H*j/steps);
+        const tick=document.createElementNS('http://www.w3.org/2000/svg','line');
+        tick.setAttribute('x1',left-3);
+        tick.setAttribute('x2',left);
+        tick.setAttribute('y1',y);
+        tick.setAttribute('y2',y);
+        tick.setAttribute('stroke','var(--ring)');
+        tick.setAttribute('stroke-width','1');
+        svgElem.appendChild(tick);
+        const lab=document.createElementNS('http://www.w3.org/2000/svg','text');
+        lab.setAttribute('x',left-5);
+        lab.setAttribute('y',y+3);
+        lab.setAttribute('text-anchor','end');
+        lab.setAttribute('font-size','8');
+        lab.setAttribute('fill','#6b7280');
+        lab.textContent=Math.round(maxTotal*j/steps);
+        svgElem.appendChild(lab);
+      }
+
+      [0,0.5,1].forEach(v=>{
+        const idx=v*(cols-1);
+        const x = left + (idx/cols)*plotWidth;
+        const tick=document.createElementNS('http://www.w3.org/2000/svg','line');
+        tick.setAttribute('x1',x);
+        tick.setAttribute('x2',x);
+        tick.setAttribute('y1',top+H);
+        tick.setAttribute('y2',top+H+4);
+        tick.setAttribute('stroke','var(--ring)');
+        tick.setAttribute('stroke-width','1');
+        svgElem.appendChild(tick);
+        const lab=document.createElementNS('http://www.w3.org/2000/svg','text');
+        lab.setAttribute('x',x);
+        lab.setAttribute('y',top+H+12);
+        lab.setAttribute('text-anchor','middle');
+        lab.setAttribute('font-size','8');
+        lab.setAttribute('fill','#6b7280');
+        lab.textContent=v.toFixed(1);
+        svgElem.appendChild(lab);
+      });
+
+      const xLab=document.createElementNS('http://www.w3.org/2000/svg','text');
+      xLab.setAttribute('x',left+plotWidth/2);
+      xLab.setAttribute('y',height-4);
+      xLab.setAttribute('text-anchor','middle');
+      xLab.setAttribute('font-size','8');
+      xLab.setAttribute('fill','#6b7280');
+      xLab.textContent='τ';
+      svgElem.appendChild(xLab);
+
+      for(let idx=0;idx<cols;idx++){
+        const d = stats[idx];
+        const total = d.total;
+        if(!total) continue;
+        const counts = getStackCounts(d);
+        let y = top + H;
+        for(const seg of counts){
+          const h = (seg.value/maxTotal)*H;
+          if(h<=0) continue;
+          const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
+          rect.setAttribute('x', left + idx*colWidth);
+          rect.setAttribute('y', y - h);
+          rect.setAttribute('width',colWidth);
+          rect.setAttribute('height',h);
+          rect.setAttribute('fill',seg.color);
+          svgElem.appendChild(rect);
+          y -= h;
+        }
+      }
+
+      const hi=document.createElementNS('http://www.w3.org/2000/svg','rect');
+      hi.setAttribute('fill','none');
+      hi.setAttribute('stroke','rgba(15,23,42,0.6)');
+      hi.setAttribute('stroke-width','0.8');
+      hi.setAttribute('pointer-events','none');
+      svgElem.appendChild(hi);
+
+      const tip = document.getElementById('ribbonTip');
+      function showIdx(idx,evt){
+        idx=Math.max(0,Math.min(cols-1,idx|0));
+        const d = stats[idx];
+        const total = d.total;
+        let meanTxt='—', varTxt='—';
+        if(d.cCount>0){
+          const m=d.cIdxSum/d.cCount;
+          const v=d.cIdxSqSum/d.cCount - m*m;
+          meanTxt=m.toFixed(2);
+          varTxt=v.toFixed(2);
+        }
+        const tau = (idx/(cols-1)).toFixed(2);
+        const html=`<div style="font-weight:700;margin-bottom:4px">τ = ${tau}${total?'':' (no data)'}</div>
+          ${buildStackTooltipRows(d,total)}
+          <div style="margin-top:4px;color:#334155">Total: ${total||0}</div>
+          <div style="margin-top:4px;color:#334155">Mean cascade start index: <b>${meanTxt}</b></div>
+          <div style="color:#334155">Variance of cascade start: <b>${varTxt}</b></div>`;
+        if(!tip) return;
+        tip.innerHTML=html;
+        tip.style.display='block';
+        tip.style.left=(evt.clientX+12)+'px';
+        tip.style.top=(evt.clientY+12)+'px';
+
+        const xCol = left + idx*colWidth;
+        hi.setAttribute('x',xCol);
+        hi.setAttribute('y',top-0.5);
+        hi.setAttribute('width',colWidth);
+        hi.setAttribute('height',H+1);
+      }
+      function hideTip(){
+        if(!tip) return;
+        tip.style.display='none';
+        hi.setAttribute('width','0');
+      }
+
+      for(let idx=0; idx<cols; idx++){
+        const hit=document.createElementNS('http://www.w3.org/2000/svg','rect');
+        hit.setAttribute('x',left+idx*colWidth);
+        hit.setAttribute('y',top);
+        hit.setAttribute('width',colWidth);
+        hit.setAttribute('height',H);
+        hit.setAttribute('fill','transparent');
+        hit.addEventListener('mousemove',(e)=>showIdx(idx,e));
+        hit.addEventListener('mouseleave',hideTip);
+        svgElem.appendChild(hit);
+      }
+    }
+
+    function buildGridDOM(){
+      const panel = el('gridPanel');
+      if(!panel) return;
+      panel.innerHTML='';
+      if(!pVals.length || !qVals.length){ return; }
+
+      const frag=document.createDocumentFragment();
+      const headerRow=document.createElement('div');
+      headerRow.className='grid-row grid-row-header';
+      headerRow.style.gridTemplateColumns = `80px repeat(${pVals.length}, minmax(0,1fr))`;
+      const corner=document.createElement('div');
+      corner.className='grid-label';
+      corner.textContent='q \\ p';
+      headerRow.appendChild(corner);
+      pVals.forEach(p=>{
+        const cell=document.createElement('div');
+        cell.className='grid-label';
+        cell.textContent=`p=${p.toFixed(2)}`;
+        headerRow.appendChild(cell);
+      });
+      frag.appendChild(headerRow);
+
+      qVals.forEach((q,qIndex)=>{
+        const row=document.createElement('div');
+        row.className='grid-row';
+        row.style.gridTemplateColumns = `80px repeat(${pVals.length}, minmax(0,1fr))`;
+        const label=document.createElement('div');
+        label.className='grid-label';
+        label.textContent=`q=${q.toFixed(2)}`;
+        row.appendChild(label);
+        pVals.forEach((p,pIndex)=>{
+          const cell=document.createElement('div');
+          const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+          svg.classList.add('mini-svg');
+          svg.setAttribute('id',`mini-${qIndex}-${pIndex}`);
+          cell.appendChild(svg);
+          row.appendChild(cell);
+        });
+        frag.appendChild(row);
+      });
+
+      panel.appendChild(frag);
+    }
+
+    function runGridBatch(){
+      const pStart = Number(el('pStart').value);
+      const pStep  = Number(el('pStep').value);
+      const pEnd   = Number(el('pEnd').value);
+      const qStart = Number(el('qStart').value);
+      const qStep  = Number(el('qStep').value);
+      const qEnd   = Number(el('qEnd').value);
+      const N      = Number(el('NGrid').value);
+      const B      = Number(el('batchGrid').value);
+      if(!(pStart>0 && pEnd>0 && pStep>0 && pStart<pEnd) ||
+         !(qStart>0.5 && qEnd>0.5 && qStep>0 && qStart<qEnd) ||
+         !(N>=3) ||
+         !(B>=1)){
+        alert('Check ranges: need 0<p<1, 0.5<q<1, N≥3, positive steps, and start<end.');
+        return;
+      }
+      pVals = makeRange(pStart, pStep, pEnd);
+      qVals = makeRange(qStart, qStep, qEnd);
+      if(!pVals.length || !qVals.length){
+        alert('Range/step choices produced no values.');
+        return;
+      }
+      const seedGrid = parseSeed(el('seedGrid').value.trim());
+      const gridRng = mulberry32(seedGrid);
+
+      const tauCount = 101;
+      gridStats = qVals.map(()=> pVals.map(
+        ()=> Array.from(
+          {length: tauCount},
+          ()=>({cc:0,ci:0,ncc:0,nci:0,total:0,cIdxSum:0,cIdxSqSum:0,cCount:0})
+        )
+      ));
+
+      buildGridDOM();
+
+      for(let qi=0; qi<qVals.length; qi++){
+        const q = qVals[qi];
+        const lam = Math.log(q/(1-q));
+        for(let pi=0; pi<pVals.length; pi++){
+          const p = pVals[pi];
+          const L0 = Math.log(p/(1-p));
+          const statsCell = gridStats[qi][pi];
+          for(let r=0; r<B; r++){
+            const sA = (gridRng()<p);
+            const sigs = Array.from({length:N},()=> (gridRng()<q)? sA : !sA );
+            for(let tIdx=0;tIdx<tauCount;tIdx++){
+              const tau = tIdx/(tauCount-1);
+              const {cascade, success, cIndex} = simulateTrialOutcome(
+                tau, sigs, sA, lam, L0, N, gridRng
+              );
+              const bucket = statsCell[tIdx];
+              if (cascade && success) bucket.cc++;
+              else if (cascade && !success) bucket.ci++;
+              else if (!cascade && success) bucket.ncc++;
+              else bucket.nci++;
+              bucket.total++;
+              if(cascade && cIndex!=null){
+                bucket.cIdxSum += cIndex;
+                bucket.cIdxSqSum += cIndex*cIndex;
+                bucket.cCount++;
+              }
+            }
+          }
+          const svgElem = el(`mini-${qi}-${pi}`);
+          if(svgElem){
+            drawMiniRibbon(svgElem, statsCell);
+          }
+        }
+      }
+    }
+
+    function clearGrid(){
+      const panel = el('gridPanel');
+      if(panel) panel.innerHTML='';
+      gridStats = null;
+      pVals = [];
+      qVals = [];
+    }
+
+    function exportGridSVG(){
+      alert('Grid SVG export unchanged in this script version (use your existing exportGridSVG if needed).');
+    }
+
+    // --- Tab 3: N sweep logic (stacked ribbons + success-vs-N plot) ---
+    let nSweep = null;      // [nIndex][tIndex] -> bucket
+    let nTauVals = [];      // explicit tau values used for ribbons
+    let nMin=3, nMax=100;
+
+    // success-by-N for tau=0 and tau=1
+    let successByN = { tau0: null, tau1: null, totals0: null, totals1: null };
+
+    function makeTauRange(start, step, end){
+      const out=[];
+      if(step<=0) return out;
+      const clamp=(x)=>Math.max(0,Math.min(1,x));
+      start=clamp(start); end=clamp(end);
+      if(end < start) [start,end] = [end,start];
+      for(let x=start; x<=end+1e-12; x+=step){
+        out.push(+clamp(x).toFixed(6));
+      }
+      if(out.length===0 || out[out.length-1] !== +end.toFixed(6)){
+        if(end >= start) out.push(+end.toFixed(6));
+      }
+      // de-dupe
+      const uniq=[];
+      const seen=new Set();
+      for(const v of out){
+        const k=v.toFixed(6);
+        if(!seen.has(k)){ seen.add(k); uniq.push(v); }
+      }
+      return uniq;
+    }
+
+    function initNSweepStorage(){
+      const nCount = nMax - nMin + 1;
+      const tCount = nTauVals.length;
+      nSweep = Array.from({length:nCount}, ()=> Array.from(
+        {length:tCount},
+        ()=>({cc:0,ci:0,ncc:0,nci:0,total:0,cIdxSum:0,cIdxSqSum:0,cCount:0})
+      ));
+    }
+
+    function ensureNPanel(){
+      const panel = el('nPanel');
+      if(!panel) return;
+      panel.innerHTML='';
+      if(!nSweep || !nTauVals.length) return;
+
+      const frag=document.createDocumentFragment();
+      for(let N=nMin; N<=nMax; N++){
+        const row=document.createElement('div');
+        row.className='nRow';
+        const lab=document.createElement('div');
+        lab.className='nLabel';
+        lab.textContent=`N=${N}`;
+        const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+        svg.classList.add('nSvg');
+        svg.setAttribute('id',`nsvg-${N}`);
+        row.appendChild(lab);
+        row.appendChild(svg);
+        frag.appendChild(row);
+      }
+      panel.appendChild(frag);
+    }
+
+    function drawNRibbon(svgElem, stats, tauVals){
+      const cols = tauVals.length;
+      const height = 170;
+      const wrapW = svgElem.clientWidth || 900;
+      const left=40,right=16,top=12,bottom=40;
+      const H = height - top - bottom;
+
+      const plotWidth=Math.max(420, wrapW-(left+right));
+      const colWidth=plotWidth/cols;
+      const W=left+plotWidth+right;
+
+      svgElem.setAttribute('width', W);
+      svgElem.setAttribute('height', height);
+      svgElem.setAttribute('viewBox', `0 0 ${W} ${height}`);
+      while(svgElem.firstChild) svgElem.removeChild(svgElem.firstChild);
+
+      const axis=document.createElementNS('http://www.w3.org/2000/svg','line');
+      axis.setAttribute('x1',left);
+      axis.setAttribute('y1',top);
+      axis.setAttribute('x2',left);
+      axis.setAttribute('y2',top+H);
+      axis.setAttribute('stroke','var(--ring)');
+      axis.setAttribute('stroke-width','1');
+      svgElem.appendChild(axis);
+
+      const xAxis=document.createElementNS('http://www.w3.org/2000/svg','line');
+      xAxis.setAttribute('x1',left);
+      xAxis.setAttribute('y1',top+H);
+      xAxis.setAttribute('x2',W-right);
+      xAxis.setAttribute('y2',top+H);
+      xAxis.setAttribute('stroke','var(--ring)');
+      xAxis.setAttribute('stroke-width','1');
+      svgElem.appendChild(xAxis);
+
+      let maxTotal=0;
+      for(let i=0;i<cols;i++){
+        if(stats[i].total>maxTotal) maxTotal=stats[i].total;
+      }
+      if(maxTotal<=0) maxTotal=1;
+
+      const steps=3;
+      for(let j=0;j<=steps;j++){
+        const y = top + H - (H*j/steps);
+        const tick=document.createElementNS('http://www.w3.org/2000/svg','line');
+        tick.setAttribute('x1',left-4);
+        tick.setAttribute('x2',left);
+        tick.setAttribute('y1',y);
+        tick.setAttribute('y2',y);
+        tick.setAttribute('stroke','var(--ring)');
+        tick.setAttribute('stroke-width','1');
+        svgElem.appendChild(tick);
+
+        const lab=document.createElementNS('http://www.w3.org/2000/svg','text');
+        lab.setAttribute('x',left-8);
+        lab.setAttribute('y',y+4);
+        lab.setAttribute('text-anchor','end');
+        lab.setAttribute('font-size','12');
+        lab.setAttribute('fill','#334155');
+        lab.textContent=Math.round(maxTotal*j/steps);
+        svgElem.appendChild(lab);
+      }
+
+      // x ticks at endpoints + mid (nearest bins)
+      const minTau=tauVals[0], maxTau=tauVals[tauVals.length-1];
+      const tickVals=[minTau,(minTau+maxTau)/2,maxTau];
+      tickVals.forEach(v=>{
+        let idx=0, best=Infinity;
+        for(let i=0;i<tauVals.length;i++){
+          const d=Math.abs(tauVals[i]-v);
+          if(d<best){best=d; idx=i;}
+        }
+        const x=left + idx*colWidth + colWidth/2;
+        const tick=document.createElementNS('http://www.w3.org/2000/svg','line');
+        tick.setAttribute('x1',x);
+        tick.setAttribute('x2',x);
+        tick.setAttribute('y1',top+H);
+        tick.setAttribute('y2',top+H+5);
+        tick.setAttribute('stroke','var(--ring)');
+        tick.setAttribute('stroke-width','1');
+        svgElem.appendChild(tick);
+
+        const lab=document.createElementNS('http://www.w3.org/2000/svg','text');
+        lab.setAttribute('x',x);
+        lab.setAttribute('y',top+H+18);
+        lab.setAttribute('text-anchor','middle');
+        lab.setAttribute('font-size','12');
+        lab.setAttribute('fill','#334155');
+        lab.textContent=v.toFixed(2);
+        svgElem.appendChild(lab);
+      });
+
+      const xLab=document.createElementNS('http://www.w3.org/2000/svg','text');
+      xLab.setAttribute('x',(left+(W-right))/2);
+      xLab.setAttribute('y',height-10);
+      xLab.setAttribute('text-anchor','middle');
+      xLab.setAttribute('font-size','14');
+      xLab.setAttribute('fill','#334155');
+      xLab.textContent='τ';
+      svgElem.appendChild(xLab);
+
+      for(let idx=0;idx<cols;idx++){
+        const d=stats[idx];
+        if(!d.total) continue;
+        const counts=getStackCounts(d);
+        let y=top+H;
+        for(const seg of counts){
+          const h=(seg.value/maxTotal)*H;
+          if(h<=0) continue;
+          const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
+          rect.setAttribute('x',left+idx*colWidth);
+          rect.setAttribute('y',y-h);
+          rect.setAttribute('width',colWidth);
+          rect.setAttribute('height',h);
+          rect.setAttribute('fill',seg.color);
+          svgElem.appendChild(rect);
+          y-=h;
+        }
+      }
+
+      const hi=document.createElementNS('http://www.w3.org/2000/svg','rect');
+      hi.setAttribute('fill','none');
+      hi.setAttribute('stroke','rgba(15,23,42,0.6)');
+      hi.setAttribute('stroke-width','1');
+      hi.setAttribute('pointer-events','none');
+      svgElem.appendChild(hi);
+
+      const tip=document.getElementById('ribbonTip');
+      function showIdx(idx,evt){
+        idx=Math.max(0,Math.min(cols-1,idx|0));
+        const d=stats[idx];
+        const total=d.total;
+        let meanTxt='—', varTxt='—';
+        if(d.cCount>0){
+          const m=d.cIdxSum/d.cCount;
+          const v=d.cIdxSqSum/d.cCount - m*m;
+          meanTxt=m.toFixed(2);
+          varTxt=v.toFixed(2);
+        }
+        const html=`<div style="font-weight:700;margin-bottom:4px">τ = ${tauVals[idx].toFixed(3)}${total?'':' (no data)'}</div>
+          ${buildStackTooltipRows(d,total)}
+          <div style="margin-top:4px;color:#334155">Total: ${total||0}</div>
+          <div style="margin-top:4px;color:#334155">Mean cascade start index: <b>${meanTxt}</b></div>
+          <div style="color:#334155">Variance of cascade start: <b>${varTxt}</b></div>`;
+        if(!tip) return;
+        tip.innerHTML=html;
+        tip.style.display='block';
+        tip.style.left=(evt.clientX+12)+'px';
+        tip.style.top=(evt.clientY+12)+'px';
+
+        const xCol=left+idx*colWidth;
+        hi.setAttribute('x',xCol);
+        hi.setAttribute('y',top-0.5);
+        hi.setAttribute('width',colWidth);
+        hi.setAttribute('height',H+1);
+      }
+      function hideTip(){
+        if(!tip) return;
+        tip.style.display='none';
+        hi.setAttribute('width','0');
+      }
+
+      for(let idx=0; idx<cols; idx++){
+        const hit=document.createElementNS('http://www.w3.org/2000/svg','rect');
+        hit.setAttribute('x',left+idx*colWidth);
+        hit.setAttribute('y',top);
+        hit.setAttribute('width',colWidth);
+        hit.setAttribute('height',H);
+        hit.setAttribute('fill','transparent');
+        hit.addEventListener('mousemove',(e)=>showIdx(idx,e));
+        hit.addEventListener('mouseleave',hideTip);
+        svgElem.appendChild(hit);
+      }
+    }
+
+    // --- FIXED: One τ at Nmax, evaluate prefix N; tie-breaking is on-demand and uses separate RNG ---
+    function simulateOneTauAtMaxAndTruncate(tau, sigs, trueStateA, lam, L0, Nmax, tieRng){
+      let rA=0, rB=0;
+      let cascadeIndex = null;
+
+      const prefixA = new Array(Nmax+1); prefixA[0]=0;
+      const prefixB = new Array(Nmax+1); prefixB[0]=0;
+
+      for(let i=0;i<Nmax;i++){
+        const Lprev = L0 + tau*(rA - rB)*lam;
+        const inCascade = Math.abs(Lprev) > lam + 1e-12;
+        if(inCascade && cascadeIndex===null) cascadeIndex=i;
+
+        const sAi = sigs[i];
+        const Lwith = Lprev + (sAi ? +lam : -lam);
+        const chooseA = (Math.abs(Lwith)<1e-12) ? sAi : (Lwith>0);
+
+        prefixA[i+1]=prefixA[i] + (chooseA?1:0);
+        prefixB[i+1]=prefixB[i] + (chooseA?0:1);
+
+        if(!inCascade){
+          if(sAi) rA++; else rB++;
+        }
+      }
+
+      const outByN = new Array(Nmax+1);
+      for(let N=1; N<=Nmax; N++){
+        const a = prefixA[N];
+        const b = prefixB[N];
+        const finalA = (a===b) ? (tieRng() < 0.5) : (a>b);
+        const final = finalA ? 'A' : 'B';
+        const cascade = (cascadeIndex !== null) && (cascadeIndex < N);
+        const success = (final === (trueStateA?'A':'B'));
+        const cIndex1 = cascade ? (cascadeIndex+1) : null;
+        outByN[N] = {cascade, success, cIndex1};
+      }
+      return outByN;
+    }
+
+    function drawSuccessPlot(){
+      const svg = el('successPlot');
+      if(!svg) return;
+      const wrapW = svg.clientWidth || 900;
+      const width = Math.max(520, wrapW);
+      const height = 280;
+      svg.setAttribute('width', width);
+      svg.setAttribute('height', height);
+      svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+      while(svg.firstChild) svg.removeChild(svg.firstChild);
+
+      const left=52, right=18, top=16, bottom=40;
+      const W = width - left - right;
+      const H = height - top - bottom;
+
+      const bg=document.createElementNS('http://www.w3.org/2000/svg','rect');
+      bg.setAttribute('x',0); bg.setAttribute('y',0);
+      bg.setAttribute('width',width); bg.setAttribute('height',height);
+      bg.setAttribute('fill','#ffffff');
+      svg.appendChild(bg);
+
+      const yAxis=document.createElementNS('http://www.w3.org/2000/svg','line');
+      yAxis.setAttribute('x1',left); yAxis.setAttribute('y1',top);
+      yAxis.setAttribute('x2',left); yAxis.setAttribute('y2',top+H);
+      yAxis.setAttribute('stroke','var(--ring)'); yAxis.setAttribute('stroke-width','1');
+      svg.appendChild(yAxis);
+
+      const xAxis=document.createElementNS('http://www.w3.org/2000/svg','line');
+      xAxis.setAttribute('x1',left); xAxis.setAttribute('y1',top+H);
+      xAxis.setAttribute('x2',left+W); xAxis.setAttribute('y2',top+H);
+      xAxis.setAttribute('stroke','var(--ring)'); xAxis.setAttribute('stroke-width','1');
+      svg.appendChild(xAxis);
+
+      for(let j=0;j<=5;j++){
+        const y = top + H - (H*j/5);
+        const tick=document.createElementNS('http://www.w3.org/2000/svg','line');
+        tick.setAttribute('x1',left-4); tick.setAttribute('x2',left);
+        tick.setAttribute('y1',y); tick.setAttribute('y2',y);
+        tick.setAttribute('stroke','var(--ring)'); tick.setAttribute('stroke-width','1');
+        svg.appendChild(tick);
+
+        const lab=document.createElementNS('http://www.w3.org/2000/svg','text');
+        lab.setAttribute('x',left-8); lab.setAttribute('y',y+4);
+        lab.setAttribute('text-anchor','end');
+        lab.setAttribute('font-size','12'); lab.setAttribute('fill','#334155');
+        lab.textContent=(j/5).toFixed(1);
+        svg.appendChild(lab);
+      }
+
+      const nCount = nMax - nMin + 1;
+      const ticks = 5;
+      for(let t=0;t<=ticks;t++){
+        const N = Math.round(nMin + (nCount-1)*(t/ticks));
+        const x = left + (N - nMin)/(nCount-1) * W;
+        const tick=document.createElementNS('http://www.w3.org/2000/svg','line');
+        tick.setAttribute('x1',x); tick.setAttribute('x2',x);
+        tick.setAttribute('y1',top+H); tick.setAttribute('y2',top+H+5);
+        tick.setAttribute('stroke','var(--ring)'); tick.setAttribute('stroke-width','1');
+        svg.appendChild(tick);
+
+        const lab=document.createElementNS('http://www.w3.org/2000/svg','text');
+        lab.setAttribute('x',x); lab.setAttribute('y',top+H+18);
+        lab.setAttribute('text-anchor','middle');
+        lab.setAttribute('font-size','12'); lab.setAttribute('fill','#334155');
+        lab.textContent=String(N);
+        svg.appendChild(lab);
+      }
+
+      const xLab=document.createElementNS('http://www.w3.org/2000/svg','text');
+      xLab.setAttribute('x',left+W/2);
+      xLab.setAttribute('y',height-12);
+      xLab.setAttribute('text-anchor','middle');
+      xLab.setAttribute('font-size','14');
+      xLab.setAttribute('fill','#334155');
+      xLab.textContent='N';
+      svg.appendChild(xLab);
+
+      const yLab=document.createElementNS('http://www.w3.org/2000/svg','text');
+      yLab.setAttribute('x',14);
+      yLab.setAttribute('y',top+H/2);
+      yLab.setAttribute('transform',`rotate(-90 14 ${top+H/2})`);
+      yLab.setAttribute('text-anchor','middle');
+      yLab.setAttribute('font-size','14');
+      yLab.setAttribute('fill','#334155');
+      yLab.textContent='P(correct)';
+      svg.appendChild(yLab);
+
+      if(!successByN.tau0 || !successByN.tau1) return;
+
+      function yOf(p){ return top + H - p*H; }
+      function xOfN(N){ return left + (N - nMin)/(nCount-1) * W; }
+
+      const pts0=[], pts1=[];
+      for(let N=nMin; N<=nMax; N++){
+        const idx = N - nMin;
+        const tot0 = successByN.totals0[idx] || 0;
+        const tot1 = successByN.totals1[idx] || 0;
+        const p0 = tot0>0 ? (successByN.tau0[idx]/tot0) : 0;
+        const p1 = tot1>0 ? (successByN.tau1[idx]/tot1) : 0;
+        pts0.push([xOfN(N), yOf(p0), p0, N]);
+        pts1.push([xOfN(N), yOf(p1), p1, N]);
+      }
+
+      function polyline(points, strokeVar){
+        const pl=document.createElementNS('http://www.w3.org/2000/svg','polyline');
+        pl.setAttribute('fill','none');
+        pl.setAttribute('stroke',strokeVar);
+        pl.setAttribute('stroke-width','2');
+        pl.setAttribute('points',points.map(p=>`${p[0].toFixed(2)},${p[1].toFixed(2)}`).join(' '));
+        svg.appendChild(pl);
+      }
+
+      polyline(pts0,'var(--neutral)');
+      polyline(pts1,'var(--good)');
+
+      const tip=document.getElementById('ribbonTip');
+      function showTip(evt, tauLabel, p, N){
+        if(!tip) return;
+        tip.innerHTML = `<div style="font-weight:700;margin-bottom:4px">${tauLabel}</div>
+          <div>N = <b>${N}</b></div>
+          <div>P(correct) = <b>${p.toFixed(3)}</b></div>`;
+        tip.style.display='block';
+        tip.style.left=(evt.clientX+12)+'px';
+        tip.style.top=(evt.clientY+12)+'px';
+      }
+      function hideTip(){
+        if(!tip) return;
+        tip.style.display='none';
+      }
+
+      function drawPoints(points, fillVar, tauLabel){
+        points.forEach(p=>{
+          const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+          c.setAttribute('cx',p[0]); c.setAttribute('cy',p[1]);
+          c.setAttribute('r',3.5);
+          c.setAttribute('fill',fillVar);
+          c.setAttribute('stroke','#ffffff');
+          c.setAttribute('stroke-width','1');
+          c.addEventListener('mousemove',(e)=>showTip(e,tauLabel,p[2],p[3]));
+          c.addEventListener('mouseleave',hideTip);
+          svg.appendChild(c);
+        });
+      }
+      drawPoints(pts0,'var(--neutral)','τ = 0');
+      drawPoints(pts1,'var(--good)','τ = 1');
+
+      const lx = left + 10;
+      const ly = top + 10;
+
+      function legendItem(y, strokeVar, label){
+        const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+        line.setAttribute('x1',lx); line.setAttribute('x2',lx+24);
+        line.setAttribute('y1',y);  line.setAttribute('y2',y);
+        line.setAttribute('stroke',strokeVar);
+        line.setAttribute('stroke-width','3');
+        svg.appendChild(line);
+
+        const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+        t.setAttribute('x',lx+30); t.setAttribute('y',y+4);
+        t.setAttribute('font-size','12');
+        t.setAttribute('fill','#334155');
+        t.textContent=label;
+        svg.appendChild(t);
+      }
+      legendItem(ly,'var(--neutral)','τ = 0');
+      legendItem(ly+18,'var(--good)','τ = 1');
+    }
+
+    function buildNStackCombinedSVGString(){ return null; }
+    async function exportNStackPNG(){ alert('N-stack PNG export unchanged in this script version (use your existing buildNStackCombinedSVGString/exportNStackPNG if needed).'); }
+    async function exportSuccessPlotPNG(){
+      const svg = el('successPlot');
+      if(!svg){ alert('Success plot not found.'); return; }
+      const s = svgElemToString(svg);
+      await svgToPngFromString(s, 'success_by_N_tau0_tau1.png', 2);
+    }
+
+    // --- FIXED: Tab 3 runNSweep now matches Tab 1 batch semantics ---
+    function runNSweep(){
+      const p = Number(el('pN').value);
+      const q = Number(el('qN').value);
+      const tauStart = Number(el('tauStartN').value);
+      const tauStep  = Number(el('tauStepN').value);
+      const tauEnd   = Number(el('tauEndN').value);
+      nMin = Number(el('NMin').value);
+      nMax = Number(el('NMax').value);
+      const B = Number(el('batchN3').value);
+      const seedStr = el('seedN').value.trim();
+      const seed = parseSeed(seedStr);
+
+      if(!(p>0 && p<1) || !(q>0.5 && q<1) || !(nMin>=3) || !(nMax>=nMin) || !(B>=1)){
+        alert('Check inputs: 0<p<1, 0.5<q<1, min N≥3, max N≥min N, batch≥1.');
+        return;
+      }
+
+      nTauVals = makeTauRange(tauStart, tauStep, tauEnd);
+      if(!nTauVals.length){
+        alert('τ range produced no values.');
+        return;
+      }
+
+      const rngSignals = mulberry32(seed); // ONLY for true state + signals
+      const lam = Math.log(q/(1-q));
+      const L0 = Math.log(p/(1-p));
+
+      initNSweepStorage();
+
+      const nCount = nMax - nMin + 1;
+      successByN.tau0 = new Array(nCount).fill(0);
+      successByN.tau1 = new Array(nCount).fill(0);
+      successByN.totals0 = new Array(nCount).fill(0);
+      successByN.totals1 = new Array(nCount).fill(0);
+
+      // Outer loop: one signal sequence per run, reused across all τ (Tab 1 semantics)
+      for(let r=0; r<B; r++){
+        const trueStateA = (rngSignals() < p);
+        const sigs = Array.from({length:nMax}, ()=> (rngSignals() < q) ? trueStateA : !trueStateA );
+
+        // ribbons: evaluate all τ on the same sigs
+        for(let tIdx=0; tIdx<nTauVals.length; tIdx++){
+          const tau = nTauVals[tIdx];
+
+          // tie RNG isolated from signal RNG
+          const tieSeed = parseSeed(`${seedStr||seed}|r=${r}|tauIdx=${tIdx}|ties`);
+          const rngTies = mulberry32(tieSeed);
+
+          const outByN = simulateOneTauAtMaxAndTruncate(tau, sigs, trueStateA, lam, L0, nMax, rngTies);
+
+          for(let N=nMin; N<=nMax; N++){
+            const bucket = nSweep[N - nMin][tIdx];
+            const res = outByN[N];
+            if(res.cascade && res.success) bucket.cc++;
+            else if(res.cascade && !res.success) bucket.ci++;
+            else if(!res.cascade && res.success) bucket.ncc++;
+            else bucket.nci++;
+            bucket.total++;
+            if(res.cascade && res.cIndex1!=null){
+              bucket.cIdxSum += res.cIndex1;
+              bucket.cIdxSqSum += res.cIndex1*res.cIndex1;
+              bucket.cCount++;
+            }
+          }
+        }
+
+        // success-by-N: τ=0 and τ=1 using the same sigs (separate tie RNGs)
+        const rngTies0 = mulberry32(parseSeed(`${seedStr||seed}|r=${r}|tau=0|ties`));
+        const rngTies1 = mulberry32(parseSeed(`${seedStr||seed}|r=${r}|tau=1|ties`));
+        const out0 = simulateOneTauAtMaxAndTruncate(0.0, sigs, trueStateA, lam, L0, nMax, rngTies0);
+        const out1 = simulateOneTauAtMaxAndTruncate(1.0, sigs, trueStateA, lam, L0, nMax, rngTies1);
+
+        for(let N=nMin; N<=nMax; N++){
+          const idx = N - nMin;
+          successByN.totals0[idx] += 1;
+          successByN.totals1[idx] += 1;
+          if(out0[N].success) successByN.tau0[idx] += 1;
+          if(out1[N].success) successByN.tau1[idx] += 1;
+        }
+      }
+
+      ensureNPanel();
+
+      for(let N=nMax; N>=nMin; N--){
+        const svgElem = el(`nsvg-${N}`);
+        if(!svgElem) continue;
+        drawNRibbon(svgElem, nSweep[N - nMin], nTauVals);
+      }
+
+      drawSuccessPlot();
+
+      el('btn-download-nstack-png').disabled = false;
+      el('btn-download-success-png').disabled = false;
+    }
+
+    function clearNSweep(){
+      const panel = el('nPanel');
+      if(panel) panel.innerHTML='';
+      nSweep=null;
+      nTauVals=[];
+      successByN = { tau0: null, tau1: null, totals0: null, totals1: null };
+      const sp = el('successPlot');
+      if(sp) while(sp.firstChild) sp.removeChild(sp.firstChild);
+      el('btn-download-nstack-png').disabled = true;
+      el('btn-download-success-png').disabled = true;
+    }
+
+    
+    // --- Tab 3: Q sweep logic (fixed N; stacked ribbons + success-vs-q plot) ---
+    let qSweep = null;      // [qIndex][tIndex] -> bucket
+    let qTauVals = [];
+    let qRangeVals = [];
+    let qFixedN = 50;
+
+    let successByQ = { tau0: null, tau1: null, totals0: null, totals1: null };
+
+    function makeQRange(start, step, end){
+      const out=[];
+      if(step<=0) return out;
+      const clamp=(x)=>Math.max(0.51,Math.min(0.99,x));
+      start=clamp(start); end=clamp(end);
+      if(end < start) [start,end] = [end,start];
+      for(let x=start; x<=end+1e-12; x+=step){
+        out.push(+clamp(x).toFixed(6));
+      }
+      if(out.length===0 || out[out.length-1] !== +end.toFixed(6)){
+        if(end >= start) out.push(+end.toFixed(6));
+      }
+      // de-dupe
+      const uniq=[];
+      const seen=new Set();
+      for(const v of out){
+        const k=v.toFixed(6);
+        if(!seen.has(k)){ seen.add(k); uniq.push(v); }
+      }
+      return uniq;
+    }
+
+    function initQSweepStorage(){
+      const qCount = qRangeVals.length;
+      const tCount = qTauVals.length;
+      qSweep = Array.from({length:qCount}, ()=> Array.from(
+        {length:tCount},
+        ()=>({cc:0,ci:0,ncc:0,nci:0,total:0,cIdxSum:0,cIdxSqSum:0,cCount:0})
+      ));
+    }
+
+    function ensureQPanel(){
+      const panel = el('qPanel');
+      if(!panel) return;
+      panel.innerHTML='';
+      if(!qSweep || !qTauVals.length || !qRangeVals.length) return;
+
+      const frag=document.createDocumentFragment();
+      for(let qi=0; qi<qRangeVals.length; qi++){
+        const row=document.createElement('div');
+        row.className='nRow';
+        const lab=document.createElement('div');
+        lab.className='nLabel';
+        lab.textContent=`q=${qRangeVals[qi].toFixed(2)}`;
+        const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+        svg.classList.add('nSvg');
+        svg.setAttribute('id',`qsvg-${qi}`);
+        row.appendChild(lab);
+        row.appendChild(svg);
+        frag.appendChild(row);
+      }
+      panel.appendChild(frag);
+    }
+
+    function drawSuccessPlotQ(){
+      const svg = el('successPlotQ');
+      if(!svg) return;
+      while(svg.firstChild) svg.removeChild(svg.firstChild);
+
+      const wrapW = svg.clientWidth || 900;
+      const height = 220;
+      const left=50,right=20,top=14,bottom=46;
+      const W = Math.max(640, wrapW);
+      const H = height - top - bottom;
+
+      svg.setAttribute('width', W);
+      svg.setAttribute('height', height);
+      svg.setAttribute('viewBox', `0 0 ${W} ${height}`);
+
+      const axisY=document.createElementNS('http://www.w3.org/2000/svg','line');
+      axisY.setAttribute('x1',left); axisY.setAttribute('x2',left);
+      axisY.setAttribute('y1',top);  axisY.setAttribute('y2',top+H);
+      axisY.setAttribute('stroke','var(--ring)'); axisY.setAttribute('stroke-width','1');
+      svg.appendChild(axisY);
+
+      const axisX=document.createElementNS('http://www.w3.org/2000/svg','line');
+      axisX.setAttribute('x1',left); axisX.setAttribute('x2',W-right);
+      axisX.setAttribute('y1',top+H); axisX.setAttribute('y2',top+H);
+      axisX.setAttribute('stroke','var(--ring)'); axisX.setAttribute('stroke-width','1');
+      svg.appendChild(axisX);
+
+      for(let j=0;j<=5;j++){
+        const y = top + H - (H*j/5);
+        const tick=document.createElementNS('http://www.w3.org/2000/svg','line');
+        tick.setAttribute('x1',left-4); tick.setAttribute('x2',left);
+        tick.setAttribute('y1',y); tick.setAttribute('y2',y);
+        tick.setAttribute('stroke','var(--ring)'); tick.setAttribute('stroke-width','1');
+        svg.appendChild(tick);
+
+        const lab=document.createElementNS('http://www.w3.org/2000/svg','text');
+        lab.setAttribute('x',left-8); lab.setAttribute('y',y+4);
+        lab.setAttribute('text-anchor','end');
+        lab.setAttribute('font-size','12'); lab.setAttribute('fill','#334155');
+        lab.textContent=(j/5).toFixed(1);
+        svg.appendChild(lab);
+      }
+
+      if(!successByQ.tau0 || !successByQ.tau1) return;
+
+      const qMin = qRangeVals[0], qMax = qRangeVals[qRangeVals.length-1];
+      const ticks=4;
+      for(let t=0;t<=ticks;t++){
+        const qv = qMin + (qMax-qMin)*(t/ticks);
+        const x = left + (qv - qMin)/((qMax-qMin)||1) * ((W-right)-left);
+        const tick=document.createElementNS('http://www.w3.org/2000/svg','line');
+        tick.setAttribute('x1',x); tick.setAttribute('x2',x);
+        tick.setAttribute('y1',top+H); tick.setAttribute('y2',top+H+5);
+        tick.setAttribute('stroke','var(--ring)'); tick.setAttribute('stroke-width','1');
+        svg.appendChild(tick);
+
+        const lab=document.createElementNS('http://www.w3.org/2000/svg','text');
+        lab.setAttribute('x',x); lab.setAttribute('y',top+H+18);
+        lab.setAttribute('text-anchor','middle');
+        lab.setAttribute('font-size','12'); lab.setAttribute('fill','#334155');
+        lab.textContent=qv.toFixed(2);
+        svg.appendChild(lab);
+      }
+
+      const xLab=document.createElementNS('http://www.w3.org/2000/svg','text');
+      xLab.setAttribute('x',left+((W-right)-left)/2);
+      xLab.setAttribute('y',height-12);
+      xLab.setAttribute('text-anchor','middle');
+      xLab.setAttribute('font-size','14');
+      xLab.setAttribute('fill','#334155');
+      xLab.textContent='q';
+      svg.appendChild(xLab);
+
+      const yLab=document.createElementNS('http://www.w3.org/2000/svg','text');
+      yLab.setAttribute('x',14);
+      yLab.setAttribute('y',top+H/2);
+      yLab.setAttribute('transform',`rotate(-90 14 ${top+H/2})`);
+      yLab.setAttribute('text-anchor','middle');
+      yLab.setAttribute('font-size','14');
+      yLab.setAttribute('fill','#334155');
+      yLab.textContent='P(correct)';
+      svg.appendChild(yLab);
+
+      function yOf(p){ return top + H - p*H; }
+      function xOfQ(qv){ return left + (qv - qMin)/((qMax-qMin)||1) * ((W-right)-left); }
+
+      const pts0=[], pts1=[];
+      for(let i=0;i<qRangeVals.length;i++){
+        const tot0 = successByQ.totals0[i] || 0;
+        const tot1 = successByQ.totals1[i] || 0;
+        const p0 = tot0>0 ? (successByQ.tau0[i]/tot0) : 0;
+        const p1 = tot1>0 ? (successByQ.tau1[i]/tot1) : 0;
+        pts0.push([xOfQ(qRangeVals[i]), yOf(p0), p0, qRangeVals[i]]);
+        pts1.push([xOfQ(qRangeVals[i]), yOf(p1), p1, qRangeVals[i]]);
+      }
+
+      function polyline(points, strokeVar){
+        const pl=document.createElementNS('http://www.w3.org/2000/svg','polyline');
+        pl.setAttribute('fill','none');
+        pl.setAttribute('stroke',strokeVar);
+        pl.setAttribute('stroke-width','2');
+        pl.setAttribute('points',points.map(p=>`${p[0].toFixed(2)},${p[1].toFixed(2)}`).join(' '));
+        svg.appendChild(pl);
+      }
+      polyline(pts0,'var(--neutral)');
+      polyline(pts1,'var(--good)');
+
+      const tip=document.getElementById('ribbonTip');
+      function showTip(evt, tauLabel, p, qv){
+        if(!tip) return;
+        tip.innerHTML = `<div style="font-weight:700;margin-bottom:4px">${tauLabel}</div>
+          <div>q = <b>${qv.toFixed(3)}</b></div>
+          <div>P(correct) = <b>${p.toFixed(3)}</b></div>`;
+        tip.style.display='block';
+        tip.style.left=(evt.clientX+12)+'px';
+        tip.style.top=(evt.clientY+12)+'px';
+      }
+      function hideTip(){ if(tip) tip.style.display='none'; }
+
+      function drawPoints(points, fillVar, tauLabel){
+        points.forEach(p=>{
+          const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+          c.setAttribute('cx',p[0]); c.setAttribute('cy',p[1]);
+          c.setAttribute('r',3.5);
+          c.setAttribute('fill',fillVar);
+          c.setAttribute('stroke','#ffffff');
+          c.setAttribute('stroke-width','1');
+          c.addEventListener('mousemove',(e)=>showTip(e,tauLabel,p[2],p[3]));
+          c.addEventListener('mouseleave',hideTip);
+          svg.appendChild(c);
+        });
+      }
+      drawPoints(pts0,'var(--neutral)','τ = 0');
+      drawPoints(pts1,'var(--good)','τ = 1');
+
+      const lx = left + 10;
+      const ly = top + 10;
+      function legendItem(y, strokeVar, label){
+        const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+        line.setAttribute('x1',lx); line.setAttribute('x2',lx+24);
+        line.setAttribute('y1',y);  line.setAttribute('y2',y);
+        line.setAttribute('stroke',strokeVar);
+        line.setAttribute('stroke-width','3');
+        svg.appendChild(line);
+
+        const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+        t.setAttribute('x',lx+30); t.setAttribute('y',y+4);
+        t.setAttribute('font-size','12');
+        t.setAttribute('fill','#334155');
+        t.textContent=label;
+        svg.appendChild(t);
+      }
+      legendItem(ly,'var(--neutral)','τ = 0');
+      legendItem(ly+18,'var(--good)','τ = 1');
+    }
+
+    function runQSweep(){
+      const p = Number(el('pQ')?.value);
+      qFixedN = Number(el('NQ')?.value);
+      const qStart = Number(el('qStartQ')?.value);
+      const qStep  = Number(el('qStepQ')?.value);
+      const qEnd   = Number(el('qEndQ')?.value);
+      const tauStart = Number(el('tauStartQ')?.value);
+      const tauStep  = Number(el('tauStepQ')?.value);
+      const tauEnd   = Number(el('tauEndQ')?.value);
+      const B = Number(el('batchQ')?.value);
+      const seedStr = (el('seedQ')?.value||'').trim();
+      const seed = parseSeed(seedStr);
+
+      if(!(p>0 && p<1) || !(qFixedN>=3) || !(B>=1)){
+        alert('Check inputs: 0<p<1, fixed N≥3, batch≥1.');
+        return;
+      }
+
+      qRangeVals = makeQRange(qStart, qStep, qEnd);
+      if(!qRangeVals.length){
+        alert('q range produced no values.');
+        return;
+      }
+
+      qTauVals = makeTauRange(tauStart, tauStep, tauEnd);
+      if(!qTauVals.length){
+        alert('τ range produced no values.');
+        return;
+      }
+
+      initQSweepStorage();
+
+      const qCount = qRangeVals.length;
+      successByQ.tau0 = new Array(qCount).fill(0);
+      successByQ.tau1 = new Array(qCount).fill(0);
+      successByQ.totals0 = new Array(qCount).fill(0);
+      successByQ.totals1 = new Array(qCount).fill(0);
+
+      const rngBase = mulberry32(seed); // true state + per-agent uniforms
+
+      const L0 = Math.log(p/(1-p));
+
+      for(let r=0; r<B; r++){
+        const trueStateA = (rngBase() < p);
+
+        // uniforms per agent; signals will be monotone in q within this run
+        const u = Array.from({length:qFixedN}, ()=> rngBase());
+
+        for(let qi=0; qi<qRangeVals.length; qi++){
+          const q = qRangeVals[qi];
+          const lam = Math.log(q/(1-q));
+          const sigs = u.map(ui => (ui < q) ? trueStateA : !trueStateA);
+
+          // ribbons
+          for(let tIdx=0; tIdx<qTauVals.length; tIdx++){
+            const tau = qTauVals[tIdx];
+            const rngTies = mulberry32(parseSeed(`${seedStr||seed}|r=${r}|qIdx=${qi}|tauIdx=${tIdx}|ties`));
+            const {cascade, success, cIndex} = simulateTrialOutcome(tau, sigs, trueStateA, lam, L0, qFixedN, rngTies);
+
+            const bucket = qSweep[qi][tIdx];
+            if(cascade && success) bucket.cc++;
+            else if(cascade && !success) bucket.ci++;
+            else if(!cascade && success) bucket.ncc++;
+            else bucket.nci++;
+            bucket.total++;
+            if(cascade && cIndex!=null){
+              bucket.cIdxSum += cIndex;
+              bucket.cIdxSqSum += cIndex*cIndex;
+              bucket.cCount++;
+            }
+          }
+
+          // success-by-q for τ=0 and τ=1
+          const rngTies0 = mulberry32(parseSeed(`${seedStr||seed}|r=${r}|qIdx=${qi}|tau=0|ties`));
+          const rngTies1 = mulberry32(parseSeed(`${seedStr||seed}|r=${r}|qIdx=${qi}|tau=1|ties`));
+          const out0 = simulateTrialOutcome(0.0, sigs, trueStateA, lam, L0, qFixedN, rngTies0);
+          const out1 = simulateTrialOutcome(1.0, sigs, trueStateA, lam, L0, qFixedN, rngTies1);
+
+          successByQ.totals0[qi] += 1;
+          successByQ.totals1[qi] += 1;
+          if(out0.success) successByQ.tau0[qi] += 1;
+          if(out1.success) successByQ.tau1[qi] += 1;
+        }
+      }
+
+      ensureQPanel();
+
+      for(let qi=0; qi<qRangeVals.length; qi++){
+        const svgElem = el(`qsvg-${qi}`);
+        if(!svgElem) continue;
+        drawNRibbon(svgElem, qSweep[qi], qTauVals);
+      }
+
+      drawSuccessPlotQ();
+    }
+
+    function clearQSweep(){
+      const panel = el('qPanel');
+      if(panel) panel.innerHTML='';
+      qSweep=null;
+      qTauVals=[];
+      qRangeVals=[];
+      successByQ = { tau0: null, tau1: null, totals0: null, totals1: null };
+      const sp = el('successPlotQ');
+      if(sp) while(sp.firstChild) sp.removeChild(sp.firstChild);
+    }
+
+// --- Wiring ---
+    document.querySelectorAll('.tab-btn').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const target = btn.getAttribute('data-tab');
+        document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+        document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+        btn.classList.add('active');
+        const pane = document.getElementById(target);
+        if(pane) pane.classList.add('active');
+      });
+    });
+
+    // Tab 1 buttons
+    el('btn-new').addEventListener('click',()=>{
+      if(autoTimer){clearInterval(autoTimer); autoTimer=null;}
+      initRun();
+    });
+    el('btn-step').addEventListener('click', stepOnce);
+    el('btn-complete').addEventListener('click', ()=>{
+      while (stepIndex < params.N) stepOnce();
+    });
+    el('btn-auto').addEventListener('click', ()=>{
+      if(!autoTimer){
+        el('btn-auto').textContent='Pause';
+        autoTimer=setInterval(()=>{
+          if (stepIndex < params.N) stepOnce();
+          else {
+            clearInterval(autoTimer); autoTimer=null;
+            el('btn-auto').textContent='Auto';
+          }
+        }, 400);
+      } else {
+        clearInterval(autoTimer); autoTimer=null;
+        el('btn-auto').textContent='Auto';
+      }
+    });
+    el('btn-runbatch').addEventListener('click', ()=>{
+      const B = Number(el('batchN').value)||1000;
+      simulateBatch(B);
+      updateAggUI();
+      drawRibbon();
+    });
+    el('btn-clearall').addEventListener('click', clearAll);
+
+    (function initStackModeToggle(){
+      updateStackLegends();
+      document.querySelectorAll('[data-stack-mode]').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          const next = btn.getAttribute('data-stack-mode');
+          if(!next || next===stackMode) return;
+          stackMode = next;
+          redrawAllStackedFigures();
+        });
+      });
+    })();
+
+    (function initHoverScopeToggle(){
+      updateHoverScopeToggle();
+      document.querySelectorAll('[data-hover-scope]').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          const next = btn.getAttribute('data-hover-scope');
+          if(!next || next===hoverScope) return;
+          hoverScope = next;
+          updateHoverScopeToggle();
+          const tip = el('ribbonTip');
+          if(tip) tip.style.display='none';
+          hoverTauKey = '';
+          updateTauHighlightNodeClasses();
+          drawRibbon({skipMetaPanels:true});
+        });
+      });
+    })();
+
+    (function initVisualizationToggles(){
+      const dataChk = el('showDataToggle');
+      const analyticOverlayChk = el('showAnalyticOverlayToggle');
+      if(dataChk){
+        dataChk.checked = !!showSimulatedData;
+        dataChk.addEventListener('change', ()=>{
+          showSimulatedData = !!dataChk.checked;
+          drawRibbon({skipMetaPanels:true});
+          drawTab1SummaryPlots();
+          renderTauPartitions();
+        });
+      }
+      if(analyticOverlayChk){
+        analyticOverlayChk.checked = !!(showAnalyticProfiles || showPhaseCutoffs);
+        analyticOverlayChk.addEventListener('change', ()=>{
+          const on = !!analyticOverlayChk.checked;
+          showAnalyticProfiles = on;
+          showPhaseCutoffs = on;
+          drawRibbon({skipMetaPanels:true});
+          drawTab1SummaryPlots();
+          renderTauPartitions();
+        });
+      }
+      updateLineLegendState();
+    })();
+
+    (function initTauResolutionSelect(){
+      const sel = el('tauResolutionSelect');
+      if(!sel) return;
+      sel.value = String(tauCols);
+      sel.addEventListener('change', ()=>{
+        const cols = Number(sel.value) || 1001;
+        setTauResolution(cols);
+      });
+    })();
+
+    // Grid buttons
+    el('btn-grid-run').addEventListener('click', runGridBatch);
+    el('btn-grid-clear').addEventListener('click', clearGrid);
+    el('btn-grid-download').addEventListener('click', exportGridSVG);
+
+    // Tab 3 buttons
+    el('btn-n-run').addEventListener('click', runNSweep);
+    el('btn-n-clear').addEventListener('click', clearNSweep);
+
+    // Tab 3 buttons (Q sweep)
+    const btnQR = el('btn-q-run');
+    if(btnQR) btnQR.addEventListener('click', runQSweep);
+    const btnQC = el('btn-q-clear');
+    if(btnQC) btnQC.addEventListener('click', clearQSweep);
+
+    // Tab 3 export buttons (PNG)
+    el('btn-download-nstack-png').addEventListener('click', exportNStackPNG);
+    el('btn-download-success-png').addEventListener('click', exportSuccessPlotPNG);
+
+    // Download buttons (Tab 1)
+    (function(){
+      const btnR = el('btn-download-ribbon');
+      if(btnR) btnR.addEventListener('click', exportRibbonSVG);
+      const btnRows = el('btn-download-rows');
+      if(btnRows) btnRows.addEventListener('click', exportRowsSVG);
+      const btnCsv = el('btn-download-ribbon-csv');
+      if(btnCsv) btnCsv.addEventListener('click', exportRibbonCSV);
+    })();
+
+    // Auto-init (Tab 1)
+    initRun();
+    updateStackLegends();
+    updateHoverScopeToggle();
+    drawRibbon();
+
+    window.addEventListener('resize', ()=>{
+      drawRibbon();
+      if(gridStats){
+        for(let qi=0; qi<qVals.length; qi++){
+          for(let pi=0; pi<pVals.length; pi++){
+            const svgElem = el(`mini-${qi}-${pi}`);
+            if(svgElem) drawMiniRibbon(svgElem, gridStats[qi][pi]);
+          }
+        }
+      }
+      if(nSweep && nTauVals.length){
+        for(let N=nMax; N>=nMin; N--){
+          const svgElem = el(`nsvg-${N}`);
+          if(!svgElem) continue;
+          drawNRibbon(svgElem, nSweep[N - nMin], nTauVals);
+        }
+        drawSuccessPlot();
+      }
+      if(qSweep && qTauVals.length){
+        for(let qi=0; qi<qRangeVals.length; qi++){
+          const svgElem = el(`qsvg-${qi}`);
+          if(svgElem) drawNRibbon(svgElem, qSweep[qi], qTauVals);
+        }
+        drawSuccessPlotQ();
+      }
+    });
+  </script>
+</body>
+</html>
