@@ -1,6 +1,7 @@
 <!DOCTYPE html>
+
 <!--
-  CascadesModel0_12
+  CascadesModel0_26
   Change log
   - 0_0: Renamed app to CascadesModel0_0.
   - 0_0: Added a global stack-order toggle so stacked τ figures can be grouped by cascade status or by correctness.
@@ -13,7 +14,7 @@
   - 0_0: Added a τ partition analysis panel based on the phase-shift thresholds τ = 1/d.
   - 0_1: Added hover-linked highlighting from the phase analysis into the ribbon and summary lines, and reordered legends into the 2×2 no-cascade/cascade by incorrect/correct layout.
   - 0_2: Removed the τ-specific superlatives so the analysis focuses on phase performance differences.
-  - 0_2: Expanded each τ phase row to report mean, min, max, and variance for both P(cascade) and P(correct) across sampled τ bins.
+  - 0_2: Expanded each τ phase row to report mean, min, max, and variance for both P(cascade) and P(correct aggregate vote) across sampled τ bins.
   - 0_2: Added click-to-pin highlighting for τ phase rows so a hovered partition can stay highlighted until toggled off.
   - 0_3: Restored the missing computeTauPartitions() helper so the τ phase panel populates again instead of throwing a ReferenceError.
   - 0_4: Tightened the 2×2 outcome legend spacing and added matching color chips inside the hover tooltips.
@@ -24,8 +25,8 @@
   - 0_5: Smoothed phase-hover behavior on the main τ figure by switching to a single hit layer, keeping the phase highlight stable while the hovered τ value updates within that phase.
   - 0_5: Added a compact line legend and shared tooltip for the combined order-parameter plot.
   - 0_6: Moved the combined order-parameter plot directly below the main τ stacked chart and above the phase analysis panel.
-  - 0_6: Added exact finite-horizon phase predictions, surfaced them in the phase tooltips and phase rows, and cached them for reuse.
-  - 0_6: Added a shared toggle for showing or hiding analytic phase predictions on both the stacked τ figure and the combined order-parameter plot.
+  - 0_6: Added exact finite-horizon predicted phase values, surfaced them in the phase tooltips and phase rows, and cached them for reuse.
+  - 0_6: Added a shared toggle for showing or hiding analytic predicted phase values on both the stacked τ figure and the combined order-parameter plot.
   - 0_7: Promoted the phase barrier m into the phase profiles and tooltips, with explanatory text tying it to the reachability-versus-reliability tradeoff behind the maximizing phase.
   - 0_7: Reworked the figure visibility controls so simulated data, analytic phase profiles, and predicted phase cutoffs can each be toggled independently in both the stacked τ figure and the combined order-parameter plot.
   - 0_7: Moved the τ sweep resolution control into the top parameter panel, added a 10001 option, and raised the default Tab 1 batch size to 1000.
@@ -34,15 +35,29 @@
   - 0_10: Reworked each phase row to render an actual width×height rectangle profile, with width = P(cascade), height = P(correct | cascade), and area = P(correct cascade).
   - 0_11: Softened the phase profile graphic into a quiet silhouette next to the probability values, removing the width/height/area labeling and extra explanatory text.
   - 0_12: Removed the silhouette explanation, restored the four-outcome breakdowns ahead of the summary probabilities, and reduced the rectangle cue to a bare inline shape without a background frame.
+  - 0_13: Moved the figure controls into a single top command bar, added an optional highlight for the phase with the largest adjacent change in the probability of a correct cascade across τ-based figures, and tightened the page shell so margins scale more gracefully with monitor width.
+  - 0_14: Restyled and regrouped the top command controls so segmented toggles and binary toggles share one visual language, switched the max-change highlight to a warmer yellow theme, clarified that the detailed data/overlay controls apply to both Tab 1 τ figures, and tuned the page shell to use monitor width more efficiently while keeping responsive margins.
+  - 0_15: Compressed the global command bar into a slimmer single-band layout, made the τ-bin/phase detail mode apply to both Tab 1 τ figures, and changed the yellow highlight to mark the phase with the highest analytic probability of a correct cascade rather than the largest adjacent phase-to-phase change.
+  - 0_16: Flattened the command bar further, reorganized parameter panels into responsive multi-column control grids, and reduced vertical waste across the page while preserving wide-screen responsiveness.
+  - 0_17: Extended the shared command bar so its stack/detail/data/highlight controls apply coherently across all tabs, switched the cross-tab phase highlight to the same yellow theme everywhere, and corrected the non-Tab-1 phase overlays so they line up with the actual τ bins and phase intervals.
+  - 0_18: Split the optional best-phase highlight into predicted-best and empirical-best states, tied each shade to the corresponding visible data layer, and made the non-Tab-1 ribbons compute their empirical best phase from the actual plotted series rather than reusing analytic-only phase metadata.
+  - 0_19: Moved the single-community walkthrough into a separate Tab 0, streamlined Tab 1 into the main τ-sweep workspace, tucked the shared visual-controls bar below each tab's parameter controls so it only sticks after scrolling, removed the obsolete total-count card, tightened controls and buttons, and added subtle cases-count footers beneath the figures.
+  - 0_20: Corrected the shared-control wording so the hover toggle reads τ versus Phase, and restored the highlight language to best phase everywhere rather than best τ while keeping the underlying highlight logic phase-based.
+  - 0_21: Replaced normative highlight wording with descriptive language centered on the phase with the highest P(correct cascade), including the toggle, badges, and helper text.
+  - 0_22: Raised the default batch size to 10000 across all tabs, renamed the tabs, made the basic walkthrough the default landing tab, tightened Tab 0 into a denser dashboard layout, and increased responsive outer margins for wide screens.
+  - 0_23: Removed repeated subtitle/helper captions across tabs and panels, compressed Tab 0 into a single-row parameter strip including a one-line τ list, and tightened the walkthrough controls further.
+  - 0_24: Removed the remaining helper-note text blocks and duplicate in-panel captions, and compressed Tab 0 further so its parameters stay in a tighter single-row layout.
+  - 0_25: Removed the leftover command-bar helper text logic and finalized the stripped-down caption-free panel layout.
+  - 0_26: Cleaned and simplified hover text, standardized tooltip terminology around predicted versus empirical values, added a micro cascade-pressure readout linking within-community buildup to the larger τ phases, and streamlined τ-hover tooltips so they focus on the hovered τ rather than repeating phase summaries.
 -->
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CascadesModel0_12</title>
-  <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CascadesModel0_26</title>
+<style>
     :root{
-      --bg:#ffffff; --panel:#ffffff; --muted:#64748b; --text:#0f172a;
+      --bg:#f6f8fc; --panel:#ffffff; --muted:#64748b; --text:#0f172a;
       --accent:#60a5fa;
       --good:#10b981; --bad:#ef4444;
       --neutral:#4c1d95;
@@ -50,6 +65,9 @@
       --ink-2:#1f2937; --ink-3:#334155; --ink-4:#94a3b8;
       --soft:#f8fafc; --soft-2:#f1f5f9;
       --a-teal:#22d3ee; --a-red:#f87171;
+      --phase-shift:#d97706; --phase-shift-soft:rgba(245,158,11,.16); --phase-shift-stroke:rgba(217,119,6,.82);
+      --phase-best-pred-fill:rgba(245,158,11,.16); --phase-best-pred-stroke:rgba(217,119,6,.84);
+      --phase-best-sim-fill:rgba(59,130,246,.15); --phase-best-sim-stroke:rgba(37,99,235,.84);
     }
     *{box-sizing:border-box}
     body{
@@ -58,16 +76,19 @@
       background:var(--bg);
       color:var(--text)
     }
-    header{padding:18px 20px 8px}
+    .page-shell{width:min(2160px, calc(100vw - clamp(56px, 10vw, 320px)));margin:0 auto;padding:0 clamp(10px, 1vw, 18px) clamp(22px, 2vw, 36px);}
+    header{padding:clamp(10px,1vw,14px) 0 6px}
     h1{margin:0;font-size:1.25rem;letter-spacing:.2px;color:var(--ink-2)}
+    .page-command-bar{margin:0 0 10px;padding:4px 6px;position:sticky;top:10px;z-index:16;background:rgba(255,255,255,.92);backdrop-filter:blur(6px);box-shadow:0 3px 12px rgba(15,23,42,.05);}
+    .command-bar-grid{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
+    .command-group{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;padding:0;border:none;border-radius:0;background:transparent;box-shadow:none}
+    .command-group-title{font-size:.67rem;font-weight:800;letter-spacing:.045em;text-transform:uppercase;color:var(--ink-3);white-space:nowrap}
+    .command-group-row{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;color:var(--ink-3);font-size:.79rem}
+    .command-label{font-size:.75rem;font-weight:700;color:var(--ink-3)}
+    .command-note{display:none}
+    .figure-panel-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
 
-    .tabbar{
-      display:flex;
-      gap:8px;
-      margin:0 14px 6px;
-      border-bottom:1px solid var(--ring);
-      flex-wrap:wrap;
-    }
+    .tabbar{display:flex;gap:8px;margin:0 0 14px;border-bottom:1px solid var(--ring);flex-wrap:wrap}
     .tab-btn{
       padding:8px 12px;
       border:none;
@@ -94,48 +115,42 @@
     .wrap{
       display:grid;
       grid-template-columns:380px 1fr;
-      gap:14px;
-      padding:14px
+      gap:18px;
+      padding:0
     }
 
     #tab2Pane .wrap, #tab3Pane .wrap, #tabQPane .wrap{
       display:flex;
       flex-direction:column;
-      gap:14px;
-      padding:14px;
+      gap:18px;
+      padding:0;
       align-items:stretch;
     }
 
-    .card{
-      background:var(--panel);
-      border:1px solid var(--ring);
-      border-radius:14px;
-      padding:14px;
-      box-shadow:0 10px 24px rgba(0,0,0,.06)
+    .card{background:var(--panel);border:1px solid var(--ring);border-radius:14px;padding:12px;box-shadow:0 8px 20px rgba(0,0,0,.05)}
+    .controls{display:grid;grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));gap:8px 10px;align-items:end}
+    .controls label{display:flex;flex-direction:column;gap:3px;font-size:.78rem;color:var(--ink-3);margin-top:0;min-width:0}
+    .controls > .controls-heading,
+    .controls > .btnbar,
+    .controls > .legendRow,
+    .controls > .run-summary-grid,
+    .controls > .controls-note{
+      grid-column:1 / -1;
     }
-    .controls label{display:block;font-size:.85rem;color:var(--ink-3);margin-top:10px}
-    .row{display:flex;gap:8px;align-items:center}
-    input[type="number"],input[type="text"],textarea,select{
-      width:100%;
-      background:#fff;
-      color:var(--text);
-      border:1px solid var(--ring);
-      border-radius:10px;
-      padding:8px 10px;
-      outline:none
-    }
-    textarea{height:68px;resize:vertical}
-    .btnbar{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
-    button{
-      background:#fff;
-      color:var(--ink-2);
-      border:1px solid var(--ring);
-      border-radius:10px;
-      padding:8px 10px;
-      cursor:pointer;
-      transition:.15s transform,.15s background,.15s border-color
-    }
+    .controls > .btnbar{margin-top:0}
+    .row{display:flex;gap:6px;align-items:center}
+    input[type="number"],input[type="text"],textarea,select{width:100%;background:#fbfdff;color:var(--text);border:1px solid var(--ring);border-radius:9px;padding:6px 8px;outline:none;min-height:34px}
+    textarea{height:54px;resize:vertical}
+    .controls-walkthrough input[type="number"],
+    .controls-walkthrough input[type="text"],
+    .controls-walkthrough textarea,
+    .controls-walkthrough select{min-height:32px;padding:5px 7px}
+    .controls-walkthrough label{font-size:.71rem;gap:2px}
+    .btnbar{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+    button{background:#fff;color:var(--ink-2);border:1px solid var(--ring);border-radius:9px;padding:7px 9px;cursor:pointer;transition:.15s transform,.15s background,.15s border-color,.15s box-shadow}
+    button:not(.stack-toggle-btn):not(.tab-btn){background:linear-gradient(180deg,#f7fbff,#ebf3ff);border-color:#d7e4ff;color:#1e3a8a;box-shadow:0 1px 0 rgba(255,255,255,.8) inset}
     button:hover{transform:translateY(-1px);border-color:var(--accent)}
+    button:not(.stack-toggle-btn):not(.tab-btn):hover{background:linear-gradient(180deg,#ffffff,#eef5ff);box-shadow:0 2px 8px rgba(96,165,250,.12)}
     button:disabled{opacity:.5;cursor:default;transform:none}
 
     .grid{display:grid;grid-template-columns:1fr 420px;gap:14px}
@@ -348,8 +363,13 @@
     .line-legend-swatch{width:18px;height:0;border-top-width:3px;border-top-style:solid;display:inline-block;border-radius:999px}
     .line-legend-swatch.dashed{border-top-style:dashed;border-top-width:2px;opacity:.75}
     .order-plot-controls{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px}
-    .check-chip{display:inline-flex;align-items:center;gap:8px;color:var(--ink-3);font-size:.83rem}
-    .check-chip input{margin:0}
+    .check-chip{display:inline-flex;align-items:center;gap:8px;padding:4px 8px;border:1px solid var(--ring);border-radius:999px;background:#fff;color:var(--ink-2);font-size:.77rem;font-weight:700;line-height:1;box-shadow:inset 0 1px 0 rgba(255,255,255,.88)}
+    .check-chip input{appearance:none;-webkit-appearance:none;width:34px;height:20px;margin:0;border-radius:999px;border:1px solid var(--ring);background:linear-gradient(180deg, #f8fafc, #e2e8f0);position:relative;cursor:pointer;transition:background .16s ease,border-color .16s ease,box-shadow .16s ease}
+    .check-chip input::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#ffffff;box-shadow:0 1px 2px rgba(15,23,42,.18);transition:transform .16s ease, background .16s ease}
+    .check-chip input:checked{background:linear-gradient(180deg, rgba(253,230,138,.95), rgba(245,158,11,.55));border-color:rgba(217,119,6,.52);box-shadow:0 0 0 2px rgba(245,158,11,.12) inset}
+    .check-chip input:checked::after{transform:translateX(14px);background:#fffbeb}
+    .check-chip span{display:inline-flex;align-items:center;gap:6px}
+    .check-chip:hover{border-color:rgba(217,119,6,.28)}
 
     #ribbonTip{
       position:fixed;
@@ -366,12 +386,12 @@
     }
 
     .controlCluster{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-    .stack-toggle{display:inline-flex;align-items:center;gap:6px;padding:4px;border:1px solid var(--ring);border-radius:12px;background:#fff}
-    .stack-toggle-btn{border:none;background:transparent;color:var(--ink-3);padding:6px 10px;border-radius:8px;font-size:.82rem;cursor:pointer}
-    .stack-toggle-btn:hover{transform:none;background:var(--soft)}
-    .stack-toggle-btn.active{background:var(--soft);color:var(--ink-2);font-weight:600}
+    .stack-toggle{display:inline-flex;align-items:center;gap:6px;padding:4px;border:1px solid var(--ring);border-radius:999px;background:linear-gradient(180deg, #f8fafc, #eef2f7);box-shadow:inset 0 1px 0 rgba(255,255,255,.9)}
+    .stack-toggle-btn{border:none;background:transparent;color:var(--ink-3);padding:7px 12px;border-radius:999px;font-size:.82rem;font-weight:700;cursor:pointer;min-width:84px}
+    .stack-toggle-btn:hover{transform:none;background:rgba(255,255,255,.68)}
+    .stack-toggle-btn.active{background:#fff;color:var(--ink-2);font-weight:700;box-shadow:0 1px 2px rgba(15,23,42,.08), inset 0 0 0 1px rgba(148,163,184,.22)}
 
-    .panel-stack{display:flex;flex-direction:column;gap:14px;padding:14px}
+    .panel-stack{display:flex;flex-direction:column;gap:18px;padding:0}
     .collapsible-panel{padding:0;overflow:hidden}
     .collapsible-panel > summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 14px;font-weight:700;color:var(--ink-2);background:linear-gradient(180deg,#fff,#f8fafc)}
     .collapsible-panel > summary::-webkit-details-marker{display:none}
@@ -397,13 +417,23 @@
     .phase-badge.max{border-color:rgba(16,185,129,.38);background:rgba(16,185,129,.10);color:#047857}
     .phase-badge.min{border-color:rgba(239,68,68,.34);background:rgba(239,68,68,.10);color:#b91c1c}
     .phase-badge.tie{border-color:rgba(100,116,139,.34);background:rgba(148,163,184,.12);color:#334155}
+    .phase-badge.shift{border-color:rgba(217,119,6,.34);background:rgba(245,158,11,.14);color:#92400e}
+    .phase-badge.pred{border-color:rgba(217,119,6,.34);background:rgba(245,158,11,.14);color:#92400e}
+    .phase-badge.sim{border-color:rgba(37,99,235,.34);background:rgba(59,130,246,.12);color:#1d4ed8}
     .phase-mono{font-variant-numeric:tabular-nums}
+    .tau-phase-row.phase-command-highlight-pred{border-color:rgba(217,119,6,.56);box-shadow:0 0 0 2px rgba(245,158,11,.14) inset;background:linear-gradient(180deg, rgba(255,247,237,.94), rgba(255,255,255,.98));}
+    .tau-phase-row.phase-command-highlight-sim{border-color:rgba(37,99,235,.56);box-shadow:0 0 0 2px rgba(59,130,246,.14) inset;background:linear-gradient(180deg, rgba(239,246,255,.96), rgba(255,255,255,.98));}
+    .tau-phase-row.phase-command-highlight-both{border-color:rgba(14,116,144,.58);box-shadow:inset 0 0 0 2px rgba(245,158,11,.14), inset 0 0 0 4px rgba(59,130,246,.10);background:linear-gradient(180deg, rgba(255,247,237,.92), rgba(239,246,255,.94));}
     .tau-phase-row.tau-hover-active{border-color:rgba(217,119,6,.65);box-shadow:0 0 0 2px rgba(245,158,11,.22) inset;background:#fffaf0}
     .tau-phase-row.tau-pin-active{border-color:rgba(217,119,6,.9);box-shadow:0 0 0 2px rgba(245,158,11,.32) inset, 0 0 0 1px rgba(217,119,6,.18);background:#fff7e6}
     .tau-phase-empty{font-size:.86rem;color:var(--ink-4)}
     .tooltip-stack-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:3px}
     .tooltip-stack-label{display:inline-flex;align-items:center;gap:7px}
     .tooltip-dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex:0 0 auto}
+    .tooltip-section{margin-top:6px;padding-top:6px;border-top:1px solid rgba(203,213,225,.55)}
+    .tooltip-section-title{font-size:.72rem;color:#64748b;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px}
+    .tooltip-note{color:#334155;line-height:1.35;margin-top:4px}
+    .math-inline{font-weight:600;color:var(--ink-2)}
     .phase-profile-stack{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
     .phase-profile-block{border:1px solid var(--ring);border-radius:12px;padding:10px;background:#fff}
     .phase-profile-header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
@@ -427,7 +457,10 @@
       .phase-profile-svg{width:68px;height:68px}
     }
     @media (max-width: 980px){
+      .page-shell{width:min(100%, calc(100vw - 18px));padding:0 clamp(6px, 1vw, 12px) 20px;}
       .tab1-split{grid-template-columns:1fr}
+      .controls-walkthrough{grid-template-columns:repeat(3,minmax(110px,1fr))}
+      .walkthrough-btnbar{grid-template-columns:repeat(3,minmax(0,1fr))}
     }
     @media (max-width: 760px){
       .legendRow.stack-legend-grid{grid-template-columns:1fr}
@@ -435,383 +468,366 @@
       .phase-profile-stack{grid-template-columns:1fr}
       .phase-profile-body{grid-template-columns:1fr}
       .phase-profile-svg{margin:0 auto}
+      .controls-walkthrough{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .walkthrough-btnbar{grid-template-columns:repeat(2,minmax(0,1fr))}
     }
+
+    .command-anchor{margin:8px 0 12px}
+    .controls-heading{display:none}
+    .controls-note{font-size:.75rem;color:var(--ink-4);line-height:1.35}
+    .run-meta-strip{grid-column:1 / -1;display:flex;flex-wrap:wrap;gap:8px 14px;padding:6px 2px 2px;color:var(--ink-3);font-size:.77rem}
+    .run-meta-item{display:inline-flex;align-items:baseline;gap:6px}
+    .run-meta-label{font-weight:600;color:var(--ink-4);text-transform:uppercase;letter-spacing:.03em;font-size:.66rem}
+    .run-meta-value{font-weight:600;color:var(--ink-2)}
+    .figure-footnote{margin-top:6px;font-size:.73rem;color:var(--ink-4);text-align:right}
+    .controls-main .btnbar{grid-column:1 / -1}
+    .compact-btnbar button{min-height:34px}
+    .controls-main .controls-note{grid-column:1 / -1;max-width:720px}
+    .controls-main .controls-heading{grid-column:1 / -1}
+    .controls-walkthrough{grid-template-columns:repeat(6,minmax(80px,1fr))}
+    .controls-walkthrough .controls-heading,.controls-walkthrough .btnbar,.controls-walkthrough .legendRow,.controls-walkthrough .run-meta-strip{grid-column:1 / -1}
+    .controls-walkthrough .controls-full{grid-column:auto}
+    .walkthrough-btnbar{grid-template-columns:repeat(6,minmax(72px,1fr));max-width:none}
+    .page-command-bar .check-chip{font-size:.77rem;padding:4px 9px;border-radius:999px;background:#fff;border:1px solid var(--ring)}
+    .page-command-bar .check-chip input{accent-color:#eab308}
+    .runStat{background:#fbfdff;border-radius:10px;padding:7px 9px;border:1px solid #e5edf8}
+
 </style>
 </head>
 <body>
-  <header>
-    <h1>CascadesModel0_10</h1>
-  </header>
+<div class="page-shell">
+<header>
+<h1>CascadesModel0_26</h1>
+</header><div id="commandBarParking" style="display:none"><div class="page-command-bar card" id="globalCommandBar">
+<div class="command-bar-grid">
+<div class="command-group">
+<div class="command-group-title">All τ figures</div>
+<div class="command-group-row">
+<span class="command-label">Stack grouped by</span>
+<div aria-label="Stack grouped by" class="stack-toggle" id="stackModeToggle" role="group">
+<button class="stack-toggle-btn active" data-stack-mode="cascade" type="button">Cascade</button>
+<button class="stack-toggle-btn" data-stack-mode="correctness" type="button">Correctness</button>
+</div>
+</div>
+<div class="command-group-row">
+<span class="command-label">Details show</span>
+<div aria-label="Details show" class="stack-toggle" id="hoverScopeToggle" role="group">
+<button class="stack-toggle-btn active" data-hover-scope="tau" type="button">τ</button>
+<button class="stack-toggle-btn" data-hover-scope="phase" type="button">Phase</button>
+</div>
+</div>
+<div class="command-group-row">
+<label class="check-chip"><input checked="" id="showDataToggle" type="checkbox"/><span>Empirical data</span></label>
+<label class="check-chip"><input checked="" id="showAnalyticOverlayToggle" type="checkbox"/><span>Predicted overlays</span></label>
+<label class="check-chip"><input id="showMaxChangePhaseToggle" type="checkbox"/><span>Highlight phase with highest P(correct cascade)</span></label>
+</div>
+</div>
+</div>
 
-  <div class="tabbar">
-    <button class="tab-btn active" data-tab="tab1Pane">Tab 1 · Single (p,q) + τ sweep</button>
-    <button class="tab-btn" data-tab="tab3Pane">Tab 2 · N sweep (stacked τ sweeps)</button>
-    <button class="tab-btn" data-tab="tabQPane">Tab 3 · Q sweep (fixed N, stacked τ sweeps)</button>
-    <button class="tab-btn" data-tab="tab2Pane">Tab 4 · (p,q) grid of τ sweeps</button>
-  </div>
+</div></div>
 
-  <!-- TAB 1 -->
-  <div id="tab1Pane" class="tab-pane active">
-    <div class="panel-stack">
-      <details class="card collapsible-panel" id="tab1ControlsPanel" open>
-        <summary><span>Parameters &amp; run controls</span><span class="panel-sub">Set p, q, N, τ values, and run or batch the model.</span></summary>
-        <div class="panel-body">
-          <div class="controls">
-            <label>Prior probability of state A, p
-              <div class="row"><input id="p" type="number" min="0.01" max="0.99" step="0.01" value="0.5" /></div>
-            </label>
-            <label>Signal accuracy, q (P(signal = true state))
-              <div class="row"><input id="q" type="number" min="0.51" max="0.99" step="0.01" value="0.7" /></div>
-            </label>
-            <label>Number of agents, N
-              <div class="row"><input id="N" type="number" min="3" max="200" step="1" value="20" /></div>
-            </label>
-            <label>Trust list τ (comma-separated 0–1, e.g., 0,0.25,0.5,0.75,1)
-              <textarea id="tauList">0,0.25,0.5,0.75,1</textarea>
-            </label>
-            <label>Random seed (optional)
-              <input id="seed" type="text" placeholder="e.g., 42" />
-            </label>
+<div class="tabbar"><button class="tab-btn active" data-tab="tab0Pane">Basic Walkthrough</button><button class="tab-btn" data-tab="tab1Pane">τ Sweep</button><button class="tab-btn" data-tab="tab3Pane">N Sweep (stacked τ sweeps)</button><button class="tab-btn" data-tab="tabQPane">q Sweep (stacked τ sweeps)</button><button class="tab-btn" data-tab="tab2Pane">p,q Sweep (grid of τ sweeps)</button></div>
+<!-- TAB 1 -->
+<div class="tab-pane active" id="tab0Pane"><div class="panel-stack"><details class="card collapsible-panel" id="tab0ControlsPanel" open="">
+<summary><span>Walkthrough parameters &amp; run controls</span></summary>
+<div class="panel-body">
+<div class="controls controls-walkthrough">
 
-            <div class="btnbar">
-              <button id="btn-new">New Run</button>
-              <button id="btn-step" disabled>Step ▶</button>
-              <button id="btn-auto" disabled>Auto</button>
-            </div>
-            <div class="btnbar" style="grid-template-columns: repeat(4,1fr)">
-              <button id="btn-complete" disabled>Complete ⏩</button>
-              <button id="btn-runbatch" disabled>Run Batch</button>
-              <input id="batchN" type="number" min="1" max="50000" step="10" value="1000" title="Batch size"/>
-              <select id="tauResolutionSelect" title="τ sweep resolution">
-                <option value="101">101 τ values</option>
-                <option value="1001" selected>1001 τ values</option>
-                <option value="10001">10001 τ values</option>
-              </select>
-            </div>
-            <div class="btnbar" style="grid-template-columns: 1fr">
-              <button id="btn-clearall">Reset All</button>
-            </div>
+<label>p
+              <div class="row"><input id="p" max="0.99" min="0.01" step="0.01" type="number" value="0.5"/></div>
+</label>
+<label>q
+              <div class="row"><input id="q" max="0.99" min="0.51" step="0.01" type="number" value="0.7"/></div>
+</label>
+<label>N
+              <div class="row"><input id="N" max="200" min="3" step="1" type="number" value="20"/></div>
+</label>
+<label>Batch
+              <div class="row"><input id="batchN" max="50000" min="1" step="10" title="Batch size" type="number" value="10000"/></div>
+</label>
+<label>Seed
+              <input id="seed" placeholder="e.g., 42" type="text"/>
+</label>
+<label class="controls-full">τ list
+              <input id="tauList" type="text" value="0,0.25,0.5,0.75,1"/>
+</label>
+<div class="btnbar walkthrough-btnbar">
+<button id="btn-new">New Run</button>
+<button disabled="" id="btn-step">Step ▶</button>
+<button disabled="" id="btn-auto">Auto</button>
+<button disabled="" id="btn-complete">Complete ⏩</button>
+<button disabled="" id="btn-runbatch">Run Batch</button>
+<button id="btn-clearall">Reset All</button>
+</div>
+<div class="legendRow" style="margin-top:12px">
+<span class="chip"><span class="dot" style="background:rgba(34,211,238,.85);"></span> Private evidence: A</span>
+<span class="chip"><span class="dot" style="background:rgba(248,113,113,.85);"></span> Private evidence: B</span>
+<span class="chip"><span class="dot" style="background:transparent;border:2px solid rgba(34,211,238,.9);"></span> Public vote: A</span>
+<span class="chip"><span class="dot" style="background:transparent;border:2px solid rgba(248,113,113,.9);"></span> Public vote: B</span>
+</div>
+<div class="run-meta-strip"><span class="run-meta-item"><span class="run-meta-label">True state</span><span class="run-meta-value" id="trueState">—</span></span><span class="run-meta-item"><span class="run-meta-label">Model constants</span><span class="run-meta-value" id="runConsts">—</span></span></div>
+</div>
+</div>
+</details><details class="card collapsible-panel" id="tab0CommunityPanel" open="">
+<summary><span>Single community demonstrations &amp; aggregate metrics</span></summary>
+<div class="panel-body tight">
+<div class="tab1-split">
+<div class="card nested-card" id="rowsCard">
+<div style="display:flex;justify-content:space-between;align-items:center; margin-bottom:6px">
+<div style="font-weight:700;color:var(--ink-2)">Communities (same signals, different τ; sorted high→low)</div>
+<div class="muted" id="stepInfo" style="color:var(--ink-4)">—</div>
+</div>
+<div id="rows"></div>
+<div style="margin-top:8px; display:flex; justify-content:flex-end; gap:8px">
+<button id="btn-download-rows">Download community snapshot (SVG)</button>
+</div>
+</div>
+<div class="card nested-card" id="aggPanel">
+<div style="font-weight:700; margin-bottom:6px;color:var(--ink-2)">Aggregate over runs (per τ)</div>
+<div class="legendRow stack-legend-grid" style="margin-bottom:6px">
+<span class="chip"><span class="dot" style="background:var(--neutral)"></span> No-cascade &amp; Incorrect</span>
+<span class="chip"><span class="dot" style="background:var(--bad)"></span> Cascade &amp; Incorrect</span>
+<span class="chip"><span class="dot" style="background:var(--accent)"></span> No-cascade &amp; Correct</span>
+<span class="chip"><span class="dot" style="background:var(--good)"></span> Cascade &amp; Correct</span>
+</div>
+<div id="aggBoxes"></div>
+</div>
+</div>
+</div>
+</details><details class="card collapsible-panel" id="tab0LogPanel">
+<summary><span>Event log</span></summary>
+<div class="panel-body tight">
+<div style="display:flex;justify-content:flex-end;align-items:center; margin-bottom:6px">
+<div class="muted" style="color:var(--ink-4)">L = log-odds; λ = log(q/(1−q))</div>
+</div>
+<div aria-live="polite" class="log" id="log"></div>
+</div>
+</details></div></div><div class="tab-pane" id="tab1Pane">
+<div class="panel-stack">
+<details class="card collapsible-panel" id="tab1ControlsPanelMain" open="">
+<summary><span>Parameters &amp; batch controls</span></summary>
+<div class="panel-body">
+<div class="controls controls-main">
 
-            <div class="legendRow" style="margin-top:12px">
-              <span class="chip"><span class="dot" style="background:rgba(34,211,238,.85);"></span> Private evidence: A</span>
-              <span class="chip"><span class="dot" style="background:rgba(248,113,113,.85);"></span> Private evidence: B</span>
-              <span class="chip"><span class="dot" style="background:transparent;border:2px solid rgba(34,211,238,.9);"></span> Public vote: A</span>
-              <span class="chip"><span class="dot" style="background:transparent;border:2px solid rgba(248,113,113,.9);"></span> Public vote: B</span>
-            </div>
+<label>p
+        <div class="row"><input id="pMain" max="0.99" min="0.01" step="0.01" type="number" value="0.5"/></div>
+</label>
+<label>Signal accuracy, q
+        <div class="row"><input id="qMain" max="0.99" min="0.51" step="0.01" type="number" value="0.7"/></div>
+</label>
+<label>Number of agents, N
+        <div class="row"><input id="NMain" max="200" min="3" step="1" type="number" value="20"/></div>
+</label>
+<label>Random seed (optional)
+        <div class="row"><input id="seedMain" placeholder="e.g., 42" type="text"/></div>
+</label>
+<label>Batch size
+        <div class="row"><input id="batchMain" max="50000" min="1" step="10" type="number" value="10000"/></div>
+</label>
+<label>τ sweep resolution
+        <div class="row"><select id="tauResolutionSelect" title="τ sweep resolution"><option value="101">101 τ values</option><option selected="" value="1001">1001 τ values</option><option value="10001">10001 τ values</option></select></div>
+</label>
+<div class="btnbar compact-btnbar" style="grid-template-columns:repeat(2,minmax(0,1fr));max-width:420px">
+<button id="btn-main-runbatch">Run batch</button>
+<button id="btn-main-clear">Reset figures</button>
+</div>
 
-            <div style="margin-top:10px; display:grid; grid-template-columns: 1fr 1fr; gap:10px">
-              <div class="runStat">
-                <div>
-                  <div style="color:var(--ink-3);font-size:.8rem">True state</div>
-                  <div id="trueState" class="count">—</div>
-                </div>
-                <div id="runConsts" class="count" style="font-weight:600;font-size:.95rem">—</div>
-              </div>
-              <div class="runStat">
-                <div style="color:var(--ink-3);font-size:.8rem">Total communities counted</div>
-                <div id="totalCount" class="count">0</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </details>
-
-      <details class="card collapsible-panel" id="tab1CommunityPanel" open>
-        <summary><span>Single community demonstrations &amp; aggregate metrics</span><span class="panel-sub">Same signals across rows; aggregate outcomes on the right.</span></summary>
-        <div class="panel-body tight">
-          <div class="tab1-split">
-            <div class="card nested-card" id="rowsCard">
-              <div style="display:flex;justify-content:space-between;align-items:center; margin-bottom:6px">
-                <div style="font-weight:700;color:var(--ink-2)">Communities (same signals, different τ; sorted high→low)</div>
-                <div class="muted" id="stepInfo" style="color:var(--ink-4)">—</div>
-              </div>
-              <div id="rows"></div>
-              <div style="margin-top:8px; display:flex; justify-content:flex-end; gap:8px">
-                <button id="btn-download-rows">Download community snapshot (SVG)</button>
-              </div>
-            </div>
-
-            <div class="card nested-card" id="aggPanel">
-              <div style="font-weight:700; margin-bottom:6px;color:var(--ink-2)">Aggregate over runs (per τ)</div>
-              <div class="legendRow stack-legend-grid" style="margin-bottom:6px">
-                <span class="chip"><span class="dot" style="background:var(--neutral)"></span> No-cascade &amp; Incorrect</span>
-                <span class="chip"><span class="dot" style="background:var(--bad)"></span> Cascade &amp; Incorrect</span>
-                <span class="chip"><span class="dot" style="background:var(--accent)"></span> No-cascade &amp; Correct</span>
-                <span class="chip"><span class="dot" style="background:var(--good)"></span> Cascade &amp; Correct</span>
-              </div>
-              <div id="aggBoxes"></div>
-            </div>
-          </div>
-        </div>
-      </details>
-
-      <details class="card collapsible-panel" id="tab1MainFigurePanel" open>
-        <summary><span>Main τ figure</span><span class="panel-sub">Toggle stacking, hover scope, and which data layers are visible.</span></summary>
-        <div class="panel-body tight" id="sweepCard">
-          <div style="display:flex;justify-content:space-between;align-items:center; margin-bottom:8px; gap:10px; flex-wrap:wrap">
-            <div style="font-weight:700;color:var(--ink-2)">τ sweep (0.00 → 1.00)</div>
-            <div class="controlCluster" style="font-size:.85rem;color:var(--ink-3)">
-              <span>Stack grouped by</span>
-              <div class="stack-toggle" id="stackModeToggle" role="group" aria-label="Stack grouped by">
-                <button type="button" class="stack-toggle-btn active" data-stack-mode="cascade">Cascade</button>
-                <button type="button" class="stack-toggle-btn" data-stack-mode="correctness">Correctness</button>
-              </div>
-              <span>Hover shows</span>
-              <div class="stack-toggle" id="hoverScopeToggle" role="group" aria-label="Hover shows">
-                <button type="button" class="stack-toggle-btn active" data-hover-scope="tau">τ bin</button>
-                <button type="button" class="stack-toggle-btn" data-hover-scope="phase">Phase</button>
-              </div>
-              <label class="check-chip"><input id="showDataToggle" type="checkbox" checked /> Show simulated data</label>
-              <label class="check-chip"><input id="showAnalyticOverlayToggle" type="checkbox" checked /> Show analytic / predicted overlays</label>
-            </div>
-          </div>
-          <div class="legendRow" data-stack-legend="tab1-sweep" style="margin-bottom:6px"></div>
-          <div id="ribbonWrap" style="overflow-x:hidden; overflow-y:auto; position:relative;">
-            <svg id="ribbon" width="740" height="220"></svg>
-          </div>
-          <div style="margin-top:8px; display:flex; justify-content:flex-end; gap:8px">
-            <button id="btn-download-ribbon">Download τ sweep figure (SVG)</button>
-            <button id="btn-download-ribbon-csv">Download τ sweep data (CSV)</button>
-          </div>
-        </div>
-      </details>
-      <details class="card collapsible-panel" id="tab1OrderParamsPanel" open>
-        <summary><span>Order parameters over τ</span><span class="panel-sub">Cascade probability and aggregate accuracy.</span></summary>
-        <div class="panel-body tight">
-          <div class="order-plot-controls">
-            <div style="font-weight:700;color:var(--ink-2)">C<sub>N</sub>(τ) and A<sub>N</sub>(τ)</div>
-            
-          </div>
-          <div class="line-legend">
-            <span class="line-legend-chip" id="legend-sim-cascade"><span class="line-legend-swatch" style="border-top-color: var(--ink-2)"></span> Simulated P(cascade)</span>
-            <span class="line-legend-chip" id="legend-sim-correct"><span class="line-legend-swatch" style="border-top-color: var(--good)"></span> Simulated P(accurate aggregate vote)</span>
-            <span class="line-legend-chip" id="legend-pred-cascade"><span class="line-legend-swatch dashed" style="border-top-color: var(--ink-2)"></span> Predicted phase P(cascade)</span>
-            <span class="line-legend-chip" id="legend-pred-correct"><span class="line-legend-swatch dashed" style="border-top-color: var(--good)"></span> Predicted phase P(accurate aggregate vote)</span>
-            <span class="line-legend-chip" id="legend-thresholds"><span class="line-legend-swatch dashed" style="border-top-color: #94a3b8"></span> Phase cutoff τ = 1/d</span>
-          </div>
-          <svg id="orderPlot"></svg>
-        </div>
-      </details>
+</div>
+</div>
+</details>
+<div class="command-anchor" id="commandBarAnchor-tab1Pane"></div>
 
 
-      <details class="card collapsible-panel" id="tab1PhasePanel" open>
-        <summary><span>Phase performance</span><span class="panel-sub">Partition-level differences at the phase thresholds τ = 1/d.</span></summary>
-        <div class="panel-body tight">
-          <div class="tau-phase-title">τ phase performance</div>
-          <div id="tauPhaseNote" class="tau-phase-note"></div>
-          <div id="tauPartitions" class="tau-phase-list"></div>
-        </div>
-      </details>
 
-      <details class="card collapsible-panel" id="tab1LogPanel" open>
-        <summary><span>Event log</span><span class="panel-sub">Sequential updates, votes, and cascade onset.</span></summary>
-        <div class="panel-body tight">
-          <div style="display:flex;justify-content:space-between;align-items:center; margin-bottom:6px">
-            <div style="font-weight:700;color:var(--ink-2)">Event log</div>
-            <div class="muted" style="color:var(--ink-4)">L = log-odds; λ = log(q/(1−q))</div>
-          </div>
-          <div id="log" class="log" aria-live="polite"></div>
-        </div>
-      </details>
-    </div>
-  </div>
+<details class="card collapsible-panel" id="tab1MainFigurePanel" open="">
+<summary><span>Main τ figure</span></summary>
+<div class="panel-body tight" id="sweepCard">
 
-  <!-- TAB 2 -->
-  <div id="tab2Pane" class="tab-pane">
-    <div class="wrap">
-      <div class="card controls">
-        <div style="font-weight:700;color:var(--ink-2);margin-bottom:4px">Parameter ranges</div>
-        <label>p range (start / step / end)
+<div class="legendRow" data-stack-legend="tab1-sweep" style="margin-bottom:6px"></div>
+<div id="ribbonWrap" style="overflow-x:hidden; overflow-y:auto; position:relative;">
+<svg height="220" id="ribbon" width="740"></svg>
+</div>
+<div style="margin-top:8px; display:flex; justify-content:flex-end; gap:8px">
+<button id="btn-download-ribbon">Download τ sweep figure (SVG)</button>
+<button id="btn-download-ribbon-csv">Download τ sweep data (CSV)</button>
+</div><div class="figure-footnote" id="tab1CasesMetaRibbon"></div>
+</div>
+</details>
+<details class="card collapsible-panel" id="tab1OrderParamsPanel" open="">
+<summary><span>Order parameters over τ</span></summary>
+<div class="panel-body tight">
+
+<div class="line-legend">
+<span class="line-legend-chip" id="legend-sim-cascade"><span class="line-legend-swatch" style="border-top-color: var(--ink-2)"></span> Empirical P(cascade)</span>
+<span class="line-legend-chip" id="legend-sim-correct"><span class="line-legend-swatch" style="border-top-color: var(--good)"></span> Empirical P(correct aggregate vote)</span>
+<span class="line-legend-chip" id="legend-pred-cascade"><span class="line-legend-swatch dashed" style="border-top-color: var(--ink-2)"></span> Predicted phase P(cascade)</span>
+<span class="line-legend-chip" id="legend-pred-correct"><span class="line-legend-swatch dashed" style="border-top-color: var(--good)"></span> Predicted phase P(correct aggregate vote)</span>
+<span class="line-legend-chip" id="legend-thresholds"><span class="line-legend-swatch dashed" style="border-top-color: #94a3b8"></span> Phase cutoff τ = 1/d</span>
+</div>
+<svg id="orderPlot"></svg><div class="figure-footnote" id="tab1CasesMetaOrder"></div>
+</div>
+</details>
+<details class="card collapsible-panel" id="tab1PhasePanel">
+<summary><span>Phase performance</span></summary>
+<div class="panel-body tight">
+<div class="tau-phase-title">τ phase performance</div>
+<div class="tau-phase-note" id="tauPhaseNote"></div>
+<div class="tau-phase-list" id="tauPartitions"></div>
+</div>
+</details>
+
+</div>
+</div>
+<!-- TAB 2 -->
+<div class="tab-pane" id="tab2Pane">
+<div class="wrap">
+<div class="card controls">
+
+<label>p range (start / step / end)
           <div class="row">
-            <input id="pStart" type="number" min="0.01" max="0.99" step="0.01" value="0.3" title="p start" />
-            <input id="pStep"  type="number" min="0.01" max="0.99" step="0.01" value="0.1" title="p step" />
-            <input id="pEnd"   type="number" min="0.01" max="0.99" step="0.01" value="0.7" title="p end" />
-          </div>
-        </label>
-        <label>q range (start / step / end)
+<input id="pStart" max="0.99" min="0.01" step="0.01" title="p start" type="number" value="0.3"/>
+<input id="pStep" max="0.99" min="0.01" step="0.01" title="p step" type="number" value="0.1"/>
+<input id="pEnd" max="0.99" min="0.01" step="0.01" title="p end" type="number" value="0.7"/>
+</div>
+</label>
+<label>q range (start / step / end)
           <div class="row">
-            <input id="qStart" type="number" min="0.51" max="0.99" step="0.01" value="0.6" title="q start" />
-            <input id="qStep"  type="number" min="0.01" max="0.49" step="0.01" value="0.1" title="q step" />
-            <input id="qEnd"   type="number" min="0.51" max="0.99" step="0.01" value="0.9" title="q end" />
-          </div>
-        </label>
-        <label>Number of agents, N
+<input id="qStart" max="0.99" min="0.51" step="0.01" title="q start" type="number" value="0.6"/>
+<input id="qStep" max="0.49" min="0.01" step="0.01" title="q step" type="number" value="0.1"/>
+<input id="qEnd" max="0.99" min="0.51" step="0.01" title="q end" type="number" value="0.9"/>
+</div>
+</label>
+<label>Number of agents, N
           <div class="row">
-            <input id="NGrid" type="number" min="3" max="200" step="1" value="20" />
-          </div>
-        </label>
-        <label>Batch size per (p,q)
+<input id="NGrid" max="200" min="3" step="1" type="number" value="20"/>
+</div>
+</label>
+<label>Batch size per (p,q)
           <div class="row">
-            <input id="batchGrid" type="number" min="1" max="20000" step="10" value="200" />
-          </div>
-        </label>
-        <label>Random seed (optional)
-          <input id="seedGrid" type="text" placeholder="e.g., grid-1" />
-        </label>
+<input id="batchGrid" max="20000" min="1" step="10" type="number" value="10000"/>
+</div>
+</label>
+<label>Random seed (optional)
+          <input id="seedGrid" placeholder="e.g., grid-1" type="text"/>
+</label>
+<div class="btnbar" style="grid-template-columns: 1fr 1fr">
+<button id="btn-grid-run">Run grid batch</button>
+<button id="btn-grid-clear">Clear grid</button>
+</div>
 
-        <div class="btnbar" style="grid-template-columns: 1fr 1fr">
-          <button id="btn-grid-run">Run grid batch</button>
-          <button id="btn-grid-clear">Clear grid</button>
-        </div>
+</div><div class="command-anchor" id="commandBarAnchor-tab2Pane"></div>
+<div class="card">
 
-        <div style="margin-top:10px;font-size:.8rem;color:var(--ink-4)">
-          τ is automatically swept over 101 values from 0 to 1 for each (p,q) cell. Each panel
-          shows the same stacked categories as the main τ sweep. Hover over a panel to see counts,
-          percentages, and the mean/variance of the cascade start index for that (p,q,τ).
-        </div>
-      </div>
+<div class="legendRow" data-stack-legend="tab2-grid" style="margin-bottom:6px"></div>
+<div style="margin-bottom:8px; display:flex; justify-content:flex-end;">
+<button id="btn-grid-download">Download grid (SVG)</button>
+</div>
+<div id="gridPanel"></div><div class="figure-footnote" id="gridCasesMeta"></div>
+</div>
+</div>
+</div>
+<!-- TAB 3 -->
+<div class="tab-pane" id="tab3Pane">
+<div class="wrap">
+<div class="card controls">
 
-      <div class="card">
-        <div style="font-weight:700;color:var(--ink-2);margin-bottom:6px">
-          Grid of τ-sweep figures by (p,q)
-        </div>
-        <div class="legendRow" data-stack-legend="tab2-grid" style="margin-bottom:6px"></div>
-        <div style="margin-bottom:8px; display:flex; justify-content:flex-end;">
-          <button id="btn-grid-download">Download grid (SVG)</button>
-        </div>
-        <div id="gridPanel"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- TAB 3 -->
-  <div id="tab3Pane" class="tab-pane">
-    <div class="wrap">
-      <div class="card controls">
-        <div style="font-weight:700;color:var(--ink-2);margin-bottom:4px">N sweep settings</div>
-
-        <label>Prior probability of state A, p
-          <div class="row"><input id="pN" type="number" min="0.01" max="0.99" step="0.01" value="0.5" /></div>
-        </label>
-        <label>Signal accuracy, q
-          <div class="row"><input id="qN" type="number" min="0.51" max="0.99" step="0.01" value="0.7" /></div>
-        </label>
-
-        <label>τ range (start / step / end)
+<label>p
+          <div class="row"><input id="pN" max="0.99" min="0.01" step="0.01" type="number" value="0.5"/></div>
+</label>
+<label>Signal accuracy, q
+          <div class="row"><input id="qN" max="0.99" min="0.51" step="0.01" type="number" value="0.7"/></div>
+</label>
+<label>τ range (start / step / end)
           <div class="row">
-            <input id="tauStartN" type="number" min="0" max="1" step="0.01" value="0.00" title="τ start" />
-            <input id="tauStepN"  type="number" min="0.001" max="1" step="0.001" value="0.01" title="τ step" />
-            <input id="tauEndN"   type="number" min="0" max="1" step="0.01" value="1.00" title="τ end" />
-          </div>
-        </label>
-
-        <label>Population size range (min N / max N)
+<input id="tauStartN" max="1" min="0" step="0.01" title="τ start" type="number" value="0.00"/>
+<input id="tauStepN" max="1" min="0.001" step="0.001" title="τ step" type="number" value="0.01"/>
+<input id="tauEndN" max="1" min="0" step="0.01" title="τ end" type="number" value="1.00"/>
+</div>
+</label>
+<label>Population size range (min N / max N)
           <div class="row">
-            <input id="NMin" type="number" min="3" max="200" step="1" value="3" title="min N" />
-            <input id="NMax" type="number" min="3" max="200" step="1" value="100" title="max N" />
-          </div>
-        </label>
-
-        <label>Batch size (number of signal sequences; reused across all τ)
+<input id="NMin" max="200" min="3" step="1" title="min N" type="number" value="3"/>
+<input id="NMax" max="200" min="3" step="1" title="max N" type="number" value="100"/>
+</div>
+</label>
+<label>Batch size (number of signal sequences; reused across all τ)
           <div class="row">
-            <input id="batchN3" type="number" min="1" max="50000" step="10" value="200" />
-          </div>
-        </label>
+<input id="batchN3" max="50000" min="1" step="10" type="number" value="10000"/>
+</div>
+</label>
+<label>Random seed (optional)
+          <input id="seedN" placeholder="e.g., n-sweep-1" type="text"/>
+</label>
+<div class="btnbar" style="grid-template-columns: 1fr 1fr">
+<button id="btn-n-run">Run N sweep</button>
+<button id="btn-n-clear">Clear</button>
+</div>
 
-        <label>Random seed (optional)
-          <input id="seedN" type="text" placeholder="e.g., n-sweep-1" />
-        </label>
+</div><div class="command-anchor" id="commandBarAnchor-tab3Pane"></div>
+<div class="card">
 
-        <div class="btnbar" style="grid-template-columns: 1fr 1fr">
-          <button id="btn-n-run">Run N sweep</button>
-          <button id="btn-n-clear">Clear</button>
-        </div>
+<div class="legendRow" data-stack-legend="tab3-n" style="margin-bottom:6px"></div>
+<div style="display:flex; justify-content:flex-end; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
+<button disabled="" id="btn-download-nstack-png">Download stacked ribbons (PNG)</button>
+<button disabled="" id="btn-download-success-png">Download success-by-N (PNG)</button>
+</div>
+<div id="nPanel"></div><div class="figure-footnote" id="nCasesMeta"></div>
 
-        <div style="margin-top:10px;font-size:.8rem;color:var(--ink-4)">
-          For each run, one max-N signal sequence is generated and then evaluated across all τ.
-          Results for smaller N are derived by truncating the last agents.
-          A separate summary plot shows success probability vs N for τ=0 and τ=1.
-        </div>
-      </div>
+<svg id="successPlot"></svg>
+</div>
+</div>
+</div>
+<!-- TAB 3 (Q sweep) -->
+<div class="tab-pane" id="tabQPane">
+<div class="wrap">
+<div class="card controls">
 
-      <div class="card">
-        <div style="font-weight:700;color:var(--ink-2);margin-bottom:6px">Stacked τ sweeps by N</div>
-        <div class="legendRow" data-stack-legend="tab3-n" style="margin-bottom:6px"></div>
-
-        <div style="display:flex; justify-content:flex-end; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
-          <button id="btn-download-nstack-png" disabled>Download stacked ribbons (PNG)</button>
-          <button id="btn-download-success-png" disabled>Download success-by-N (PNG)</button>
-        </div>
-
-        <div id="nPanel"></div>
-
-        <div style="margin-top:14px; font-weight:700; color:var(--ink-2);">
-          Success probability vs N (τ=0 and τ=1)
-        </div>
-        <svg id="successPlot"></svg>
-      </div>
-    </div>
-  </div>
-  <!-- TAB 3 (Q sweep) -->
-  <div id="tabQPane" class="tab-pane">
-    <div class="wrap">
-      <div class="card controls">
-        <div style="font-weight:700;color:var(--ink-2);margin-bottom:4px">Q sweep settings</div>
-
-        <label>Prior probability of state A, p
-          <div class="row"><input id="pQ" type="number" min="0.01" max="0.99" step="0.01" value="0.5" /></div>
-        </label>
-
-        <label>Fixed number of agents, N
-          <div class="row"><input id="NQ" type="number" min="3" max="200" step="1" value="50" /></div>
-        </label>
-
-        <label>q range (start / step / end)
+<label>p
+          <div class="row"><input id="pQ" max="0.99" min="0.01" step="0.01" type="number" value="0.5"/></div>
+</label>
+<label>Fixed number of agents, N
+          <div class="row"><input id="NQ" max="200" min="3" step="1" type="number" value="50"/></div>
+</label>
+<label>q range (start / step / end)
           <div class="row">
-            <input id="qStartQ" type="number" min="0.51" max="0.99" step="0.01" value="0.51" title="q start" />
-            <input id="qStepQ"  type="number" min="0.001" max="0.2" step="0.001" value="0.01" title="q step" />
-            <input id="qEndQ"   type="number" min="0.51" max="0.99" step="0.01" value="0.99" title="q end" />
-          </div>
-        </label>
-
-        <label>τ range (start / step / end)
+<input id="qStartQ" max="0.99" min="0.51" step="0.01" title="q start" type="number" value="0.51"/>
+<input id="qStepQ" max="0.2" min="0.001" step="0.001" title="q step" type="number" value="0.01"/>
+<input id="qEndQ" max="0.99" min="0.51" step="0.01" title="q end" type="number" value="0.99"/>
+</div>
+</label>
+<label>τ range (start / step / end)
           <div class="row">
-            <input id="tauStartQ" type="number" min="0" max="1" step="0.01" value="0.00" title="τ start" />
-            <input id="tauStepQ"  type="number" min="0.001" max="1" step="0.001" value="0.01" title="τ step" />
-            <input id="tauEndQ"   type="number" min="0" max="1" step="0.01" value="1.00" title="τ end" />
-          </div>
-        </label>
-
-        <label>Batch size (number of runs per q; signals monotone in q within each run)
+<input id="tauStartQ" max="1" min="0" step="0.01" title="τ start" type="number" value="0.00"/>
+<input id="tauStepQ" max="1" min="0.001" step="0.001" title="τ step" type="number" value="0.01"/>
+<input id="tauEndQ" max="1" min="0" step="0.01" title="τ end" type="number" value="1.00"/>
+</div>
+</label>
+<label>Batch size (number of runs per q; signals monotone in q within each run)
           <div class="row">
-            <input id="batchQ" type="number" min="1" max="50000" step="10" value="200" />
-          </div>
-        </label>
+<input id="batchQ" max="50000" min="1" step="10" type="number" value="10000"/>
+</div>
+</label>
+<label>Random seed (optional)
+          <input id="seedQ" placeholder="e.g. q-sweep-1" type="text"/>
+</label>
+<div class="btnbar" style="grid-template-columns: 1fr 1fr">
+<button id="btn-q-run">Run Q sweep</button>
+<button id="btn-q-clear">Clear</button>
+</div>
 
-        <label>Random seed (optional)
-          <input id="seedQ" type="text" placeholder="e.g. q-sweep-1" />
-        </label>
+</div><div class="command-anchor" id="commandBarAnchor-tabQPane"></div>
+<div class="card">
 
-        <div class="btnbar" style="grid-template-columns: 1fr 1fr">
-          <button id="btn-q-run">Run Q sweep</button>
-          <button id="btn-q-clear">Clear</button>
-        </div>
+<div class="legendRow" data-stack-legend="tabQ-q" style="margin-bottom:6px"></div>
+<div id="qPanel"></div><div class="figure-footnote" id="qCasesMeta"></div>
 
-        <div style="margin-top:10px;font-size:.8rem;color:var(--ink-4)">
-          For each run, one true state and one set of per-agent uniform draws are generated.
-          For each q, signals are derived by thresholding those uniforms at q (so signals get strictly more accurate as q increases).
-        </div>
-      </div>
-
-      <div class="card">
-        <div style="font-weight:700;color:var(--ink-2);margin-bottom:6px">Stacked τ sweeps by q (fixed N)</div>
-        <div class="legendRow" data-stack-legend="tabQ-q" style="margin-bottom:6px"></div>
-
-        <div id="qPanel"></div>
-
-        <div style="margin-top:14px; font-weight:700; color:var(--ink-2);">
-          Success probability vs q (τ=0 and τ=1)
-        </div>
-        <svg id="successPlotQ"></svg>
-      </div>
-    </div>
-  </div>
-
-
-
-  <div id="ribbonTip"></div>
-
-  <script>
+<svg id="successPlotQ"></svg>
+</div>
+</div>
+</div>
+</div>
+<div id="ribbonTip"></div>
+<script>
     // --- Utilities ---
     function mulberry32(a){
       return function(){
@@ -880,6 +896,8 @@ const analyticPhaseProfileCache = new Map();
 let pinnedTauHighlights = [];
 let pinnedTauKey = '';
 let hoverTauKey = '';
+let showMaxCorrectCascadeChangeHighlight = false;
+const staticTauPartitionBundleCache = new Map();
 
 function clamp01(x){ return Math.max(0, Math.min(1, Number.isFinite(x) ? x : 0)); }
 
@@ -963,15 +981,24 @@ function resetTauHighlights(){
   drawRibbon({skipMetaPanels:true});
 }
 
-function drawTauHighlightBands(svg, left, top, plotWidth, height, opts={}){
-  const ranges = activeTauHighlights || [];
-  if(!ranges.length) return;
+function drawHighlightBands(svg, left, top, plotWidth, height, ranges, opts={}){
+  const normalized = normalizeTauRanges(ranges);
+  if(!normalized.length) return;
   const fill = opts.fill || 'rgba(245,158,11,0.14)';
   const stroke = opts.stroke || 'rgba(217,119,6,0.80)';
   const minWidth = opts.minWidth || 3;
-  ranges.forEach(range=>{
-    const x1 = left + clamp01(range.start) * plotWidth;
-    const x2 = left + clamp01(range.end) * plotWidth;
+  const domainMin = Number.isFinite(opts.domainMin) ? opts.domainMin : 0;
+  const domainMax = Number.isFinite(opts.domainMax) ? opts.domainMax : 1;
+  const domainLo = Math.min(domainMin, domainMax);
+  const domainHi = Math.max(domainMin, domainMax);
+  const xScale = typeof opts.xScale === 'function' ? opts.xScale : makeTauScale(left, plotWidth, domainLo, domainHi);
+  normalized.forEach(range=>{
+    const clippedStart = Math.max(domainLo, Math.min(domainHi, range.start));
+    const clippedEnd = Math.max(domainLo, Math.min(domainHi, range.end));
+    if(clippedEnd < domainLo - 1e-12 || clippedStart > domainHi + 1e-12) return;
+    let x1 = xScale(clippedStart);
+    let x2 = xScale(clippedEnd);
+    if(x2 < x1) [x1, x2] = [x2, x1];
     let width = x2 - x1;
     let x = x1;
     if(width < minWidth){
@@ -989,6 +1016,79 @@ function drawTauHighlightBands(svg, left, top, plotWidth, height, opts={}){
     rect.setAttribute('pointer-events','none');
     svg.appendChild(rect);
   });
+}
+
+function phasePartsMatch(a, b){
+  return !!(a && b && a.phase === b.phase && Math.abs(a.start - b.start) <= 1e-12 && Math.abs(a.end - b.end) <= 1e-12);
+}
+
+function getHighlightedPhaseParts(bundle){
+  if(!showMaxCorrectCascadeChangeHighlight) return {predicted:null, simulated:null};
+  return {
+    predicted: showAnalyticProfiles ? (bundle?.highestPredictedCorrectCascadePhase?.part || bundle?.highestCorrectCascadePhase?.part || null) : null,
+    simulated: showSimulatedData ? (bundle?.highestSimulatedCorrectCascadePhase?.part || null) : null
+  };
+}
+
+function getHighlightedPhaseKinds(part, bundle){
+  const active = getHighlightedPhaseParts(bundle);
+  return {
+    predicted: phasePartsMatch(part, active.predicted),
+    simulated: phasePartsMatch(part, active.simulated)
+  };
+}
+
+function isHighlightedPhase(part, bundle){
+  const kinds = getHighlightedPhaseKinds(part, bundle);
+  return !!(kinds.predicted || kinds.simulated);
+}
+
+function phaseHighlightBadgesHTML(part, bundle){
+  const kinds = getHighlightedPhaseKinds(part, bundle);
+  const badges = [];
+  if(kinds.predicted) badges.push('<span class="phase-badge pred">predicted highest</span>');
+  if(kinds.simulated) badges.push('<span class="phase-badge sim">empirical highest</span>');
+  return badges.length ? `<div class="phase-value-line">${badges.join('')}</div>` : '';
+}
+
+function phaseHighlightInfoHTML(part, bundle){
+  const kinds = getHighlightedPhaseKinds(part, bundle);
+  if(!kinds.predicted && !kinds.simulated) return '';
+  const bits = [];
+  if(kinds.predicted) bits.push('<span style="display:inline-flex;align-items:center;border:1px solid rgba(217,119,6,.34);border-radius:999px;padding:1px 7px;background:rgba(245,158,11,.14);color:#92400e;font-weight:700">Predicted highest P(correct cascade) phase</span>');
+  if(kinds.simulated) bits.push('<span style="display:inline-flex;align-items:center;border:1px solid rgba(37,99,235,.34);border-radius:999px;padding:1px 7px;background:rgba(59,130,246,.12);color:#1d4ed8;font-weight:700">Empirical highest P(correct cascade) phase</span>');
+  return tooltipSectionHTML('Current highlight', `<div style="display:flex;gap:6px;flex-wrap:wrap">${bits.join('')}</div>`);
+}
+
+function drawGreatestCorrectCascadeShiftBands(svg, bundle, left, top, plotWidth, height, opts={}){
+  const active = getHighlightedPhaseParts(bundle);
+  const minWidth = opts.minWidth || 4;
+  if(active.predicted){
+    drawHighlightBands(svg, left, top, plotWidth, height, [{start:active.predicted.start, end:active.predicted.end}], {
+      fill: opts.predictedFill || 'var(--phase-best-pred-fill)',
+      stroke: opts.predictedStroke || 'var(--phase-best-pred-stroke)',
+      minWidth,
+      xScale: opts.xScale,
+      domainMin: opts.domainMin,
+      domainMax: opts.domainMax
+    });
+  }
+  if(active.simulated){
+    drawHighlightBands(svg, left, top, plotWidth, height, [{start:active.simulated.start, end:active.simulated.end}], {
+      fill: opts.simulatedFill || 'var(--phase-best-sim-fill)',
+      stroke: opts.simulatedStroke || 'var(--phase-best-sim-stroke)',
+      minWidth,
+      xScale: opts.xScale,
+      domainMin: opts.domainMin,
+      domainMax: opts.domainMax
+    });
+  }
+}
+
+function drawTauHighlightBands(svg, left, top, plotWidth, height, opts={}){
+  const ranges = activeTauHighlights || [];
+  if(!ranges.length) return;
+  drawHighlightBands(svg, left, top, plotWidth, height, ranges, opts);
 }
 
 function getStackDefinitions(mode=stackMode){
@@ -1053,9 +1153,126 @@ function buildStackTooltipRows(d, total, mode=stackMode){
     .join('');
 }
 
+function tooltipSectionHTML(title, body){
+  if(!body) return '';
+  return `<div class="tooltip-section"><div class="tooltip-section-title">${title}</div>${body}</div>`;
+}
+
+function tooltipMetricRowHTML(label, value){
+  return `<div class="tooltip-stack-row"><span class="tooltip-stack-label">${label}</span><span><b>${value}</b></span></div>`;
+}
+
+function formatProbValue(value){
+  return Number.isFinite(value) ? Number(value).toFixed(3) : '—';
+}
+
+function buildPredictedTauSummaryHTML(profile, heading='Predicted at this τ'){
+  if(!profile) return '';
+  const body = [
+    tooltipMetricRowHTML('<span class="math-inline">P(cascade)</span>', formatProbValue(profile.pCascade)),
+    tooltipMetricRowHTML('<span class="math-inline">P(correct aggregate vote)</span>', formatProbValue(profile.pCorrect)),
+    tooltipMetricRowHTML('<span class="math-inline">P(correct cascade)</span>', formatProbValue(profile.cc))
+  ].join('');
+  return tooltipSectionHTML(heading, body);
+}
+
+function buildEmpiricalTauSummaryHTML(d, total, heading='Empirical at this τ', includeOutcomeBreakdown=true){
+  if(!d || !total) return tooltipSectionHTML(heading, '<div class="tooltip-note">No sampled cases at this τ.</div>');
+  const body = [
+    tooltipMetricRowHTML('<span class="math-inline">P(cascade)</span>', formatProbValue((d.cc + d.ci) / total)),
+    tooltipMetricRowHTML('<span class="math-inline">P(correct aggregate vote)</span>', formatProbValue((d.cc + d.ncc) / total)),
+    tooltipMetricRowHTML('<span class="math-inline">P(correct cascade)</span>', formatProbValue((d.cc) / total)),
+    includeOutcomeBreakdown ? buildStackTooltipRows(d, total) : '',
+    `<div class="tooltip-note">Cases counted: <b>${total}</b></div>`
+  ].join('');
+  return tooltipSectionHTML(heading, body);
+}
+
+function buildMicroBuildupHTML(tauValue, part){
+  const tauNum = clamp01(Number(tauValue) || 0);
+  const perVote = tauNum;
+  if(!part){
+    return tooltipSectionHTML('Micro buildup within a community', `<div class="tooltip-note">Each one-vote lead contributes <span class="math-inline">τ = ${perVote.toFixed(3)}</span> private-signal units of social pull before the next private signal arrives.</div>`);
+  }
+  if(part.impossible){
+    return tooltipSectionHTML('Micro buildup within a community', `<div class="tooltip-stack-row"><span class="tooltip-stack-label"><span class="math-inline">τ</span> per net revealed vote</span><span><b>${perVote.toFixed(3)}</b></span></div><div class="tooltip-note">This is the no-cascade phase. Even as revealed votes accumulate, the app’s phase partition never reaches the one-signal threshold needed for a true cascade.</div>`);
+  }
+  const m = part.minMargin;
+  const preMargin = Math.max(0, m - 1);
+  const prePull = tauNum * preMargin;
+  const thresholdPull = tauNum * m;
+  return tooltipSectionHTML('Micro buildup within a community', [
+    tooltipMetricRowHTML('<span class="math-inline">τ</span> per net revealed vote', perVote.toFixed(3)),
+    tooltipMetricRowHTML(`Pre-cascade bubbling at <span class="math-inline">|k| = ${preMargin}</span>`, prePull.toFixed(3)),
+    tooltipMetricRowHTML(`Phase barrier at <span class="math-inline">|k| = ${m}</span>`, thresholdPull.toFixed(3)),
+    `<div class="tooltip-note">Here <span class="math-inline">k = r_A - r_B</span>. As <span class="math-inline">τ|k|</span> approaches 1, the revealed-vote imbalance is bubbling toward a true cascade; once it exceeds 1, one contrary private signal no longer overturns the current majority in the app’s phase partition.</div>`
+  ].join(''));
+}
+
+function formatWalkthroughBuildupStatus(pressure){
+  if(!Number.isFinite(pressure) || pressure <= 1e-12) return 'no buildup yet';
+  if(pressure > 1 + 1e-12) return 'true cascade';
+  return 'pre-cascade buildup';
+}
+
 function tauLabelForIndex(idx, cols=tauCols){
   const decimals = cols>=10000 ? 4 : cols>=1000 ? 3 : 2;
   return (idx/((cols-1)||1)).toFixed(decimals);
+}
+
+function clampTauToDomain(tau, domainMin=0, domainMax=1){
+  const lo = Math.min(domainMin, domainMax);
+  const hi = Math.max(domainMin, domainMax);
+  return Math.max(lo, Math.min(hi, Number.isFinite(tau) ? tau : lo));
+}
+
+function makeTauScale(left, plotWidth, domainMin=0, domainMax=1){
+  const lo = Number.isFinite(domainMin) ? domainMin : 0;
+  const hi = Number.isFinite(domainMax) ? domainMax : 1;
+  const span = Math.max(1e-12, hi - lo);
+  return (tau)=> left + ((clampTauToDomain(tau, lo, hi) - lo) / span) * plotWidth;
+}
+
+function tauBinRangeFromValues(tauVals, idx, domainMin=0, domainMax=1){
+  const vals = Array.isArray(tauVals) ? tauVals : [];
+  if(!vals.length) return {start:domainMin, end:domainMax};
+  const i = Math.max(0, Math.min(vals.length - 1, idx|0));
+  const here = vals[i];
+  const prevMid = i > 0 ? (vals[i-1] + here) / 2 : here - (((vals[i+1] ?? here) - here) / 2 || 0.01);
+  const nextMid = i < vals.length - 1 ? (here + vals[i+1]) / 2 : here + ((here - (vals[i-1] ?? here)) / 2 || 0.01);
+  let start = Math.min(prevMid, nextMid, here);
+  let end = Math.max(prevMid, nextMid, here);
+  start = Math.max(Math.min(domainMin, domainMax), start);
+  end = Math.min(Math.max(domainMin, domainMax), end);
+  if(!(end > start)){
+    const fallback = vals.length > 1 ? Math.abs((vals[Math.min(vals.length-1, i+1)] - vals[Math.max(0, i-1)]) / 4) : 0.01;
+    start = Math.max(Math.min(domainMin, domainMax), here - fallback);
+    end = Math.min(Math.max(domainMin, domainMax), here + fallback);
+  }
+  return {start, end};
+}
+
+function nearestTauIndex(tauVals, tau){
+  const vals = Array.isArray(tauVals) ? tauVals : [];
+  if(!vals.length) return 0;
+  let bestIdx = 0;
+  let bestDelta = Infinity;
+  for(let i=0; i<vals.length; i++){
+    const delta = Math.abs(vals[i] - tau);
+    if(delta < bestDelta){
+      bestDelta = delta;
+      bestIdx = i;
+    }
+  }
+  return bestIdx;
+}
+
+function positionRibbonTip(tip, evt, html){
+  if(!tip) return;
+  tip.innerHTML = html;
+  tip.style.display='block';
+  tip.style.left=(evt.clientX+12)+'px';
+  tip.style.top=(evt.clientY+12)+'px';
 }
 
 function probCascade(d){ return (d && d.total>0) ? (d.cc + d.ci)/d.total : NaN; }
@@ -1134,6 +1351,68 @@ function computeTauPartitions(N){
   return parts;
 }
 
+function getPhaseCorrectCascadeMetric(part, mode='predicted'){
+  if(mode === 'simulated'){
+    const value = part?.summary?.sampledBins ? part?.summary?.meanOutcomeProb?.cc : null;
+    return Number.isFinite(value) ? value : null;
+  }
+  const value = part?.predicted?.cc;
+  return Number.isFinite(value) ? value : null;
+}
+
+function computeBestCorrectCascadePhase(partitions, mode='predicted'){
+  const eligible = (partitions||[]).filter(part=>Number.isFinite(getPhaseCorrectCascadeMetric(part, mode)));
+  if(!eligible.length) return null;
+  let part = eligible[0];
+  for(let i=1; i<eligible.length; i++){
+    const cand = eligible[i];
+    const candVal = getPhaseCorrectCascadeMetric(cand, mode) || 0;
+    const bestVal = getPhaseCorrectCascadeMetric(part, mode) || 0;
+    if(candVal > bestVal + 1e-12 || (Math.abs(candVal - bestVal) <= 1e-12 && cand.phase < part.phase)){
+      part = cand;
+    }
+  }
+  return {part, value: getPhaseCorrectCascadeMetric(part, mode) || 0};
+}
+
+function computeHighestCorrectCascadePhase(partitions){
+  return computeBestCorrectCascadePhase(partitions, 'predicted');
+}
+
+function emptyTauSummary(){
+  return {
+    sampledBins:0,
+    avgCascade:null, avgCorrect:null,
+    minCascade:null, maxCascade:null, varCascade:null,
+    minCorrect:null, maxCorrect:null, varCorrect:null,
+    meanOutcomeProb:{cc:0, ci:0, ncc:0, nci:0}
+  };
+}
+
+function getStaticTauPartitionBundle(N, pVal, qVal){
+  const n = Math.max(0, Math.floor(Number(N) || 0));
+  const p = Math.max(1e-12, Math.min(1 - 1e-12, Number(pVal) || 0.5));
+  const q = Math.max(0.5000001, Math.min(1 - 1e-12, Number(qVal) || 0.7));
+  const cacheKey = [n, p.toFixed(12), q.toFixed(12)].join('|');
+  if(staticTauPartitionBundleCache.has(cacheKey)) return staticTauPartitionBundleCache.get(cacheKey);
+  const decimals = 3;
+  const partitions = computeTauPartitions(n);
+  partitions.forEach(part=>{
+    part.summary = emptyTauSummary();
+    part.predicted = getAnalyticPhaseProfile(part, p, q, n);
+  });
+  const bundle = {
+    partitions, decimals, pVal:p, qVal:q,
+    predictedExtremes: computePhaseMetricExtremes(partitions, 'predicted'),
+    simulatedExtremes: computePhaseMetricExtremes(partitions, 'simulated')
+  };
+  bundle.highestPredictedCorrectCascadePhase = computeBestCorrectCascadePhase(partitions, 'predicted');
+  bundle.highestSimulatedCorrectCascadePhase = computeBestCorrectCascadePhase(partitions, 'simulated');
+  bundle.highestCorrectCascadePhase = bundle.highestPredictedCorrectCascadePhase;
+  staticTauPartitionBundleCache.set(cacheKey, bundle);
+  return bundle;
+}
+
 function getTauPartitionBundle(N){
   const decimals = tauCols>=10000 ? 4 : tauCols>=1000 ? 3 : 2;
   const partitions = computeTauPartitions(N);
@@ -1146,7 +1425,55 @@ function getTauPartitionBundle(N){
   });
   const predictedExtremes = computePhaseMetricExtremes(partitions, 'predicted');
   const simulatedExtremes = computePhaseMetricExtremes(partitions, 'simulated');
-  return {partitions, decimals, pVal, qVal, predictedExtremes, simulatedExtremes};
+  const bundle = {partitions, decimals, pVal, qVal, predictedExtremes, simulatedExtremes};
+  bundle.highestPredictedCorrectCascadePhase = computeBestCorrectCascadePhase(partitions, 'predicted');
+  bundle.highestSimulatedCorrectCascadePhase = computeBestCorrectCascadePhase(partitions, 'simulated');
+  bundle.highestCorrectCascadePhase = bundle.highestPredictedCorrectCascadePhase;
+  return bundle;
+}
+
+function collectSeriesBinsForInterval(stats, tauVals, start, end, opts={}){
+  const includeStart = !!opts.includeStart;
+  const includeEnd = opts.includeEnd !== false;
+  const eps = 1e-12;
+  const bins=[];
+  const vals = Array.isArray(tauVals) ? tauVals : [];
+  const arr = Array.isArray(stats) ? stats : [];
+  const limit = Math.min(vals.length, arr.length);
+  for(let idx=0; idx<limit; idx++){
+    const tau = vals[idx];
+    const d = arr[idx];
+    if(!d || !d.total) continue;
+    const geStart = includeStart ? tau >= start - eps : tau > start + eps;
+    const leEnd = includeEnd ? tau <= end + eps : tau < end - eps;
+    if(geStart && leEnd) bins.push({idx, tau, d});
+  }
+  return bins;
+}
+
+function getSeriesTauPartitionBundle(baseBundle, stats, tauVals){
+  if(!baseBundle?.partitions?.length) return baseBundle || null;
+  const partitions = baseBundle.partitions.map(part=>({
+    ...part,
+    predicted: part.predicted,
+    summary: emptyTauSummary()
+  }));
+  partitions.forEach(part=>{
+    const bins = collectSeriesBinsForInterval(stats, tauVals, part.start, part.end, {includeStart: part.includeStart, includeEnd: part.includeEnd});
+    part.summary = summarizeTauBins(bins);
+  });
+  const bundle = {
+    partitions,
+    decimals: baseBundle.decimals,
+    pVal: baseBundle.pVal,
+    qVal: baseBundle.qVal,
+    predictedExtremes: computePhaseMetricExtremes(partitions, 'predicted'),
+    simulatedExtremes: computePhaseMetricExtremes(partitions, 'simulated')
+  };
+  bundle.highestPredictedCorrectCascadePhase = computeBestCorrectCascadePhase(partitions, 'predicted');
+  bundle.highestSimulatedCorrectCascadePhase = computeBestCorrectCascadePhase(partitions, 'simulated');
+  bundle.highestCorrectCascadePhase = bundle.highestPredictedCorrectCascadePhase;
+  return bundle;
 }
 
 function cascadeBarrierLabel(part){
@@ -1175,6 +1502,7 @@ function getPhaseMetricValue(part, mode, field){
     const profile = part?.predicted || null;
     if(!profile) return null;
     if(field === 'pCascade') return profile.pCascade;
+    if(field === 'pCorrect') return profile.pCorrect;
     if(field === 'rel') return cascadeReliability(profile);
     if(field === 'cc') return profile.cc;
     return null;
@@ -1182,6 +1510,7 @@ function getPhaseMetricValue(part, mode, field){
   const summary = part?.summary || null;
   if(!summary?.sampledBins) return null;
   if(field === 'pCascade') return summary.avgCascade;
+  if(field === 'pCorrect') return summary.avgCorrect;
   if(field === 'rel') return cascadeReliability(summary.meanOutcomeProb);
   if(field === 'cc') return summary.meanOutcomeProb?.cc ?? null;
   return null;
@@ -1230,8 +1559,8 @@ function phaseMetricBadgesHTML(part, bundle, mode, field){
   if(flags.tied){
     badges.push('<span class="phase-badge tie">all phases tied</span>');
   } else {
-    if(flags.isMax) badges.push('<span class="phase-badge max">phase max</span>');
-    if(flags.isMin) badges.push('<span class="phase-badge min">phase min</span>');
+    if(flags.isMax) badges.push('<span class="phase-badge max">highest</span>');
+    if(flags.isMin) badges.push('<span class="phase-badge min">lowest</span>');
   }
   return badges.join('');
 }
@@ -1243,11 +1572,11 @@ function formatPhaseMetricDisplay(value){
 function getPhaseMetricSubtext(mode, field, value, part){
   if(Number.isFinite(value)){
     return mode === 'predicted'
-      ? 'Exact phase value'
-      : `Simulated mean across ${part.summary.sampledBins} sampled τ bin${part.summary.sampledBins===1?'':'s'}`;
+      ? 'Predicted phase value'
+      : `Empirical mean across ${part.summary.sampledBins} sampled τ bin${part.summary.sampledBins===1?'':'s'}`;
   }
   if(field === 'rel') return 'Undefined because cascades never occur in this phase.';
-  return mode === 'predicted' ? 'Exact phase value unavailable.' : 'No sampled τ bins in this phase.';
+  return mode === 'predicted' ? 'Predicted phase value unavailable.' : 'No sampled τ bins in this phase.';
 }
 
 function formatPhaseMetricValueWithBadges(part, bundle, mode, field){
@@ -1276,7 +1605,7 @@ function buildPhaseProfileBlockHTML(part, bundle, mode){
     rel: getPhaseMetricValue(part, mode, 'rel'),
     cc: getPhaseMetricValue(part, mode, 'cc')
   };
-  const title = mode === 'predicted' ? 'Analytic' : 'Simulated';
+  const title = mode === 'predicted' ? 'Predicted' : 'Empirical';
   const stroke = mode === 'predicted' ? '#f59e0b' : '#60a5fa';
   const fill = mode === 'predicted' ? 'rgba(245,158,11,.16)' : 'rgba(96,165,250,.18)';
   const dash = mode === 'predicted' ? '5 4' : '';
@@ -1343,7 +1672,7 @@ function buildPhaseMetricCellHTML(part, bundle, field, heading){
 function buildPhaseMetricTooltipRows(part, bundle, mode, label){
   if(mode === 'simulated' && !showSimulatedData) return '';
   if(mode === 'predicted' && !showAnalyticProfiles) return '';
-  const title = mode === 'predicted' ? 'Exact phase profile' : 'Simulated phase mean';
+  const title = mode === 'predicted' ? 'Predicted phase value' : 'Empirical empirical phase mean';
   const lines = [
     {field:'pCascade', label:'P(cascade)'},
     {field:'rel', label:'P(correct | cascade)'},
@@ -1378,7 +1707,7 @@ function explainWhyBestPhase(partitions){
   const stricter = idx>0 ? partitions[idx-1] : null;
   const looser = idx>=0 && idx<partitions.length-1 ? partitions[idx+1] : null;
   const bestRel = cascadeReliability(best.predicted);
-  let html = `Analytically, the highest expected correct-cascade share is in <b>P${best.phase}</b> (${cascadeBarrierLabel(best)}), because <b>P(correct cascade)</b> = <b>P(cascade)</b> × <b>P(correct | cascade)</b> peaks there. In this phase those exact values are <b>${best.predicted.cc.toFixed(3)}</b> = <b>${best.predicted.pCascade.toFixed(3)}</b> × <b>${Number.isFinite(bestRel) ? bestRel.toFixed(3) : '—'}</b>.`;
+  let html = `Analytically, the highest probability of a correct cascade is in <b>P${best.phase}</b> (${cascadeBarrierLabel(best)}), because <b>P(correct cascade)</b> = <b>P(cascade)</b> × <b>P(correct | cascade)</b> peaks there. In this phase those exact values are <b>${best.predicted.cc.toFixed(3)}</b> = <b>${best.predicted.pCascade.toFixed(3)}</b> × <b>${Number.isFinite(bestRel) ? bestRel.toFixed(3) : '—'}</b>.`;
   if(looser && !looser.impossible && looser.predicted){
     const looserRel = cascadeReliability(looser.predicted);
     html += ` Relative to the looser next phase <b>P${looser.phase}</b> (${cascadeBarrierLabel(looser)}), the model makes cascades easier to start, but the conditional reliability of those cascades falls from <b>${Number.isFinite(bestRel) ? bestRel.toFixed(3) : '—'}</b> to <b>${Number.isFinite(looserRel) ? looserRel.toFixed(3) : '—'}</b>, so the product drops from <b>${best.predicted.cc.toFixed(3)}</b> to <b>${looser.predicted.cc.toFixed(3)}</b>.`;
@@ -1392,6 +1721,10 @@ function explainWhyBestPhase(partitions){
     html += ` This is the first cascade-enabled phase, so moving to a stricter barrier would eliminate cascades entirely.`;
   }
   return html;
+}
+
+function updateGlobalPhaseCallout(){
+  return;
 }
 
 function representativeTauForPartition(part){
@@ -1525,7 +1858,7 @@ function formatPhasePredictionRows(predicted){
 function predictionStatLine(predicted, field){
   if(!predicted) return '';
   const value = field==='cascade' ? predicted.pCascade : field==='correct' ? predicted.pCorrect : field==='cc' ? predicted.cc : predicted.ci;
-  const label = field==='cascade' ? 'Exact phase value' : field==='correct' ? 'Exact phase value' : field==='cc' ? 'Exact correct-cascade share' : 'Exact incorrect-cascade share';
+  const label = field==='cascade' ? 'Predicted phase value' : field==='correct' ? 'Predicted phase value' : field==='cc' ? 'Exact P(correct cascade)' : 'Exact P(incorrect cascade)';
   return `<div class="s" style="margin-top:5px">${label}: <b>${value.toFixed(3)}</b></div>`;
 }
 
@@ -1533,19 +1866,22 @@ function buildPhaseTooltipHTML(part, tauValue, decimals, bundle=null){
   const summary = part?.summary || {sampledBins:0};
   const predicted = part?.predicted || null;
   const thresholdText = part?.impossible
-    ? 'No cascade is reachable anywhere in this phase.'
-    : `Entered by crossing τ > ${part.threshold.toFixed(decimals)}.`;
+    ? 'No true cascade is reachable anywhere in this phase.'
+    : `Phase change occurs at <span class="math-inline">τ > ${part.threshold.toFixed(decimals)}</span>.`;
   const simulatedHTML = showSimulatedData
     ? (summary.sampledBins
       ? buildPhaseMetricTooltipRows(part, bundle, 'simulated', `${summary.sampledBins} sampled τ bin${summary.sampledBins===1?'':'s'}`)
-      : '<div style="margin-top:6px;color:#475569">No sampled τ bins in this phase at the current resolution.</div>')
+      : tooltipSectionHTML('Empirical phase mean', '<div class="tooltip-note">No sampled τ bins in this phase at the current resolution.</div>'))
     : '';
   const predictedHTML = showAnalyticProfiles && predicted
     ? buildPhaseMetricTooltipRows(part, bundle, 'predicted', `representative τ = ${predicted.tauRep.toFixed(decimals)}`)
     : '';
-  return `<div style="font-weight:700;margin-bottom:4px">Phase P${part.phase} · τ ${formatPartitionInterval(part, decimals)}</div>
-    <div style="color:#334155">Hovered τ value: <b>${tauValue.toFixed(decimals)}</b></div>
-    <div style="color:#334155">${part.impossible ? 'No reachable cascade barrier in this phase.' : `Barrier <b>m = ${part.minMargin}</b> · ${thresholdText}`}</div>
+  const highlightHTML = phaseHighlightInfoHTML(part, bundle);
+  const macroHTML = tooltipSectionHTML('Macro phase', `<div class="tooltip-note">Hovered <span class="math-inline">τ = ${tauValue.toFixed(decimals)}</span> lies in <span class="math-inline">P${part.phase}</span> over <span class="math-inline">τ ∈ ${formatPartitionInterval(part, decimals)}</span>.</div><div class="tooltip-note">${part.impossible ? 'No reachable cascade barrier in this phase.' : `Barrier <span class="math-inline">m = ${part.minMargin}</span>. ${thresholdText}`}</div>`);
+  return `<div style="font-weight:700;margin-bottom:4px">Phase <span class="math-inline">P${part.phase}</span> · <span class="math-inline">τ ∈ ${formatPartitionInterval(part, decimals)}</span></div>
+    ${macroHTML}
+    ${buildMicroBuildupHTML(tauValue, part)}
+    ${highlightHTML}
     ${simulatedHTML}
     ${predictedHTML}`;
 }
@@ -1576,8 +1912,13 @@ function createPhaseRow(part, decimals, bundle){
   const key = phaseRowKey(part, decimals);
   row.setAttribute('data-tau-key', key);
   const intervalText = formatPartitionInterval(part, decimals);
+  const highlightKinds = getHighlightedPhaseKinds(part, bundle);
+  const highlightBadge = phaseHighlightBadgesHTML(part, bundle);
+  if(highlightKinds.predicted && highlightKinds.simulated) row.classList.add('phase-command-highlight-both');
+  else if(highlightKinds.predicted) row.classList.add('phase-command-highlight-pred');
+  else if(highlightKinds.simulated) row.classList.add('phase-command-highlight-sim');
   row.innerHTML = `
-    <div class="tau-phase-cell"><div class="k">Phase</div><div class="v">P${part.phase}</div><div class="s">${part.impossible ? 'No-cascade phase' : `Barrier m = ${part.minMargin}`}</div></div>
+    <div class="tau-phase-cell"><div class="k">Phase</div><div class="v">P${part.phase}</div><div class="s">${part.impossible ? 'No-cascade phase' : `Barrier m = ${part.minMargin}`}</div>${highlightBadge}</div>
     <div class="tau-phase-cell"><div class="k">τ interval</div><div class="v">${intervalText}</div><div class="s">${part.threshold===null ? 'Below the first phase-shift threshold.' : `Entered by crossing τ > ${part.threshold.toFixed(decimals)}`}</div></div>
     ${buildPhaseProfileCellHTML(part, bundle)}`;
   const ranges = [{start:part.start, end:part.end}];
@@ -1619,7 +1960,13 @@ function renderTauPartitions(){
   const visible = partitions.filter(part=>part.summary.sampledBins>0 || partitions.length<=40 || part.phase===1 || part.phase===partitions.length);
   const omitted = partitions.length - visible.length;
   const firstThreshold = N>2 ? (1/(N-1)).toFixed(decimals) : '—';
-  note.innerHTML = `For N=${N}, phase shifts occur at τ = 1/d for d = 2,…,${Math.max(2,N-1)}.${N>2 ? ` The first shift is at τ=${firstThreshold}.` : ''}${omitted>0 ? ` ${omitted} narrower theoretical partition${omitted===1?' is':'s are'} omitted because the current τ resolution does not sample them.` : ''}`;
+  const predInfo = showAnalyticProfiles ? bundle.highestPredictedCorrectCascadePhase : null;
+  const simInfo = showSimulatedData ? bundle.highestSimulatedCorrectCascadePhase : null;
+  const shiftBits = [];
+  if(predInfo?.part) shiftBits.push(`predicted highest P(correct cascade): <b>P${predInfo.part.phase}</b> (P(correct cascade)=${predInfo.value.toFixed(3)})`);
+  if(simInfo?.part) shiftBits.push(`empirical highest P(correct cascade): <b>P${simInfo.part.phase}</b> (P(correct cascade)=${simInfo.value.toFixed(3)})`);
+  const shiftNote = shiftBits.length ? ` Highlighted phase${shiftBits.length===1 ? '' : 's'}: ${shiftBits.join(' · ')}.` : '';
+  note.innerHTML = `For N=${N}, phase shifts occur at τ = 1/d for d = 2,…,${Math.max(2,N-1)}.${N>2 ? ` The first shift is at τ=${firstThreshold}.` : ''}${omitted>0 ? ` ${omitted} narrower theoretical partition${omitted===1?' is':'s are'} omitted because the current τ resolution does not sample them.` : ''}${showMaxCorrectCascadeChangeHighlight ? shiftNote : ''}`;
   visible.forEach(part=>host.appendChild(createPhaseRow(part, decimals, bundle)));
   if(!visible.length){
     host.innerHTML = '<div class="tau-phase-empty">No sampled τ partitions at the current resolution.</div>';
@@ -1634,20 +1981,20 @@ function redrawAllStackedFigures(){
     for(let qi=0; qi<qVals.length; qi++){
       for(let pi=0; pi<pVals.length; pi++){
         const svgElem = el(`mini-${qi}-${pi}`);
-        if(svgElem) drawMiniRibbon(svgElem, gridStats[qi][pi]);
+        if(svgElem) drawMiniRibbon(svgElem, gridStats[qi][pi], {phaseBundle:getStaticTauPartitionBundle(Number(el('NGrid')?.value)||0, pVals[pi], qVals[qi]), nVal:Number(el('NGrid')?.value)||0, pVal:pVals[pi], qVal:qVals[qi]});
       }
     }
   }
   if(nSweep && nTauVals.length){
     for(let N=nMax; N>=nMin; N--){
       const svgElem = el(`nsvg-${N}`);
-      if(svgElem) drawNRibbon(svgElem, nSweep[N - nMin], nTauVals);
+      if(svgElem) drawNRibbon(svgElem, nSweep[N - nMin], nTauVals, {phaseBundle:getStaticTauPartitionBundle(N, Number(el('pN')?.value)||0.5, Number(el('qN')?.value)||0.7), nVal:N, pVal:Number(el('pN')?.value)||0.5, qVal:Number(el('qN')?.value)||0.7, scopePrefix:`n-${N}`});
     }
   }
   if(qSweep && qTauVals.length){
     for(let qi=0; qi<qRangeVals.length; qi++){
       const svgElem = el(`qsvg-${qi}`);
-      if(svgElem) drawNRibbon(svgElem, qSweep[qi], qTauVals);
+      if(svgElem) drawNRibbon(svgElem, qSweep[qi], qTauVals, {phaseBundle:getStaticTauPartitionBundle(Number(el('NQ')?.value)||0, Number(el('pQ')?.value)||0.5, qRangeVals[qi]), nVal:Number(el('NQ')?.value)||0, pVal:Number(el('pQ')?.value)||0.5, qVal:qRangeVals[qi], scopePrefix:`q-${qi}`});
     }
   }
 }
@@ -1674,6 +2021,43 @@ function redrawAllStackedFigures(){
       return {p,q,N,taus,seed};
     }
 
+    function getMainSweepParams(){
+      const p = Number(el('pMain')?.value);
+      const q = Number(el('qMain')?.value);
+      const N = Number(el('NMain')?.value);
+      const seed = parseSeed((el('seedMain')?.value || '').trim());
+      const batch = Number(el('batchMain')?.value) || 10000;
+      return {p,q,N,seed,batch};
+    }
+
+    function syncMainFromWalkthrough(){
+      if(el('pMain')) el('pMain').value = el('p')?.value || el('pMain').value;
+      if(el('qMain')) el('qMain').value = el('q')?.value || el('qMain').value;
+      if(el('NMain')) el('NMain').value = el('N')?.value || el('NMain').value;
+      if(el('seedMain')) el('seedMain').value = el('seed')?.value || el('seedMain').value;
+      if(el('batchMain') && el('batchN')) el('batchMain').value = el('batchN').value || el('batchMain').value;
+    }
+
+    function syncWalkthroughFromMain(){
+      if(el('p')) el('p').value = el('pMain')?.value || el('p').value;
+      if(el('q')) el('q').value = el('qMain')?.value || el('q').value;
+      if(el('N')) el('N').value = el('NMain')?.value || el('N').value;
+      if(el('seed')) el('seed').value = el('seedMain')?.value || el('seed').value;
+      if(el('batchN') && el('batchMain')) el('batchN').value = el('batchMain').value || el('batchN').value;
+    }
+
+    function updateCasesMeta(id, text){
+      const node = el(id);
+      if(node) node.textContent = text || '';
+    }
+
+    function refreshFigureCaseMeta(){
+      const perTau = (tauSweep && tauSweep.length && tauSweep[0] && Number.isFinite(tauSweep[0].total)) ? tauSweep[0].total : 0;
+      const msg = perTau > 0 ? `Cases counted per τ: ${perTau.toLocaleString()}` : '';
+      updateCasesMeta('tab1CasesMetaRibbon', msg);
+      updateCasesMeta('tab1CasesMetaOrder', msg);
+    }
+
     function resetUI(){
       const rowsEl = el('rows');
       if(rowsEl) rowsEl.innerHTML='';
@@ -1683,7 +2067,6 @@ function redrawAllStackedFigures(){
       const rc = el('runConsts'); if (rc) rc.textContent='—';
       const si = el('stepInfo');  if (si) si.textContent='—';
       const host=el('aggBoxes'); if(host) host.innerHTML='';
-      const tc = el('totalCount'); if (tc) tc.textContent='0';
     }
 
     function clearAll(){
@@ -1693,6 +2076,9 @@ function redrawAllStackedFigures(){
       resetTauSweep();
       resetTauHighlights();
       drawRibbon();
+      drawTab1SummaryPlots();
+      renderTauPartitions();
+      refreshFigureCaseMeta();
       el('btn-step').disabled=true;
       el('btn-auto').disabled=true;
       el('btn-complete').disabled=true;
@@ -1824,8 +2210,6 @@ function redrawAllStackedFigures(){
 
     function updateAggUI(){
       const total=communities.reduce((s,c)=>s+c.agg.total,0);
-      const tc = el('totalCount');
-      if(tc) tc.textContent=String(total);
       communities.forEach(c=>{
         el(`cc-${c.idx}`).textContent=c.agg.cc;
         el(`ci-${c.idx}`).textContent=c.agg.ci;
@@ -1866,9 +2250,14 @@ function redrawAllStackedFigures(){
         c.actions[i]=action;
         node.classList.add(sA?'signalA':'signalB');
         node.classList.add(action);
+        const kNow = (c.revealedA-c.revealedB);
+        const socialPull = Math.abs(c.tau * kNow);
+        const cascadePressure = lambda > 0 ? Math.abs(Lprev) / lambda : 0;
         node.title = [
           `τ=${c.tau.toFixed(2)}`,
-          `k=r_A−r_B=${(c.revealedA-c.revealedB)}`,
+          `k=r_A−r_B=${kNow}`,
+          `social pull=τ·|k|=${socialPull.toFixed(3)} private-signal units`,
+          `cascade pressure χ=|L_prev|/λ=${cascadePressure.toFixed(3)} (${formatWalkthroughBuildupStatus(cascadePressure)})`,
           `L_prev=L₀+τ·k·λ=${Lprev.toFixed(3)}`,
           `signal=${sA?'A':'B'} (±λ=${(sA?'+':'−')}${lambda.toFixed(3)})`,
           `L_with=${Lwith.toFixed(3)}`,
@@ -1927,6 +2316,7 @@ function redrawAllStackedFigures(){
 
     function initRun(){
       params=getParams();
+      syncMainFromWalkthrough();
       if(params.p<=0||params.p>=1||params.q<=0.5||params.q>=1||params.N<3||params.taus.length===0){
         alert('Constraints: 0<p<1, 0.5<q<1, N≥3, and at least one τ in [0,1].');
         return;
@@ -1961,12 +2351,39 @@ function redrawAllStackedFigures(){
       el('btn-complete').disabled=false;
       el('btn-runbatch').disabled=false;
       el('btn-clearall').disabled=false;
+      refreshFigureCaseMeta();
       log(`<b>New run</b> — true state: <b>${stateA?'A':'B'}</b>, p=${params.p}, q=${params.q}, N=${params.N}, λ=${lambda.toFixed(3)}, L₀=${Lprior.toFixed(3)}`);
       log(`Taus (sorted): ${sortedTaus.map(t=>t.toFixed(2)).join(', ')}`);
       log('Rows share the same private signals; only τ differs.');
     }
 
     // --- Shared trial engine for batch & sweep ---
+    function simulateSweepBatch(B, cfg){
+      if (!tauSweep) resetTauSweep();
+      const rand = mulberry32(cfg.seed);
+      for(let r=0;r<B;r++){
+        const sA=(rand()<cfg.p);
+        const sigs=Array.from({length:cfg.N},()=> (rand()<cfg.q)? sA : !sA );
+        const lam=Math.log(cfg.q/(1-cfg.q));
+        const L0=Math.log(cfg.p/(1-cfg.p));
+        for (let idx=0; idx<tauCols; idx++){
+          const tau = idx/(tauCols-1);
+          const {cascade, success, cIndex} = simulateTrialOutcome(tau, sigs, sA, lam, L0, cfg.N, rand);
+          const bucket = tauSweep[idx];
+          if (cascade && success) bucket.cc++;
+          else if (cascade && !success) bucket.ci++;
+          else if (!cascade && success) bucket.ncc++;
+          else bucket.nci++;
+          bucket.total++;
+          if(cascade && cIndex!=null){
+            bucket.cIdxSum += cIndex;
+            bucket.cIdxSqSum += cIndex*cIndex;
+            bucket.cCount++;
+          }
+        }
+      }
+    }
+
     function simulateTrialOutcome(tau, sigs, sA, lam, L0, N, rngFn){
       const rand = rngFn || rng;
       let rA=0, rB=0, cascadeIndex=null;
@@ -2122,13 +2539,16 @@ function redrawAllStackedFigures(){
       svg.appendChild(line);
     }
 
-    function drawRibbonThresholds(svg, bundle, left, top, plotWidth, height){
+    function drawRibbonThresholds(svg, bundle, left, top, plotWidth, height, opts={}){
       if(!showPhaseCutoffs || !bundle?.partitions?.length) return;
+      const domainMin = Number.isFinite(opts.domainMin) ? opts.domainMin : 0;
+      const domainMax = Number.isFinite(opts.domainMax) ? opts.domainMax : 1;
+      const xScale = typeof opts.xScale === 'function' ? opts.xScale : makeTauScale(left, plotWidth, domainMin, domainMax);
       bundle.partitions
         .map(part=>part.threshold)
-        .filter(v=>Number.isFinite(v))
+        .filter(v=>Number.isFinite(v) && v >= Math.min(domainMin, domainMax) - 1e-12 && v <= Math.max(domainMin, domainMax) + 1e-12)
         .forEach(tau=>{
-          const x = left + clamp01(tau) * plotWidth;
+          const x = xScale(tau);
           const line=document.createElementNS('http://www.w3.org/2000/svg','line');
           line.setAttribute('x1',x); line.setAttribute('x2',x);
           line.setAttribute('y1',top); line.setAttribute('y2',top+height);
@@ -2141,14 +2561,22 @@ function redrawAllStackedFigures(){
         });
     }
 
-    function drawRibbonPredictionOverlay(svg, bundle, left, top, plotWidth, height){
+    function drawRibbonPredictionOverlay(svg, bundle, left, top, plotWidth, height, opts={}){
       if(!showAnalyticProfiles || !bundle?.partitions?.length) return;
+      const domainMin = Number.isFinite(opts.domainMin) ? opts.domainMin : 0;
+      const domainMax = Number.isFinite(opts.domainMax) ? opts.domainMax : 1;
+      const xScale = typeof opts.xScale === 'function' ? opts.xScale : makeTauScale(left, plotWidth, domainMin, domainMax);
+      const domainLo = Math.min(domainMin, domainMax);
+      const domainHi = Math.max(domainMin, domainMax);
       bundle.partitions.forEach(part=>{
         const predicted = part.predicted;
         if(!predicted) return;
-        const x1 = left + clamp01(part.start) * plotWidth;
-        const x2 = left + clamp01(part.end) * plotWidth;
-        if(x2 - x1 <= 0.5) return;
+        const start = Math.max(domainLo, part.start);
+        const end = Math.min(domainHi, part.end);
+        if(end <= start + 1e-12) return;
+        const x1 = xScale(start);
+        const x2 = xScale(end);
+        if(Math.abs(x2 - x1) <= 0.5) return;
         const counts = getStackCounts(predicted);
         let cumulative = 0;
         counts.slice(0,-1).forEach(seg=>{
@@ -2159,16 +2587,24 @@ function redrawAllStackedFigures(){
       });
     }
 
-    function drawOrderPredictionSteps(svg, bundle, left, top, plotWidth, height){
+    function drawOrderPredictionSteps(svg, bundle, left, top, plotWidth, height, opts={}){
       if(!showAnalyticProfiles || !bundle?.partitions?.length) return;
+      const domainMin = Number.isFinite(opts.domainMin) ? opts.domainMin : 0;
+      const domainMax = Number.isFinite(opts.domainMax) ? opts.domainMax : 1;
+      const xScale = typeof opts.xScale === 'function' ? opts.xScale : makeTauScale(left, plotWidth, domainMin, domainMax);
+      const domainLo = Math.min(domainMin, domainMax);
+      const domainHi = Math.max(domainMin, domainMax);
       function drawStep(field, color){
         bundle.partitions.forEach(part=>{
           const predicted = part.predicted;
           if(!predicted) return;
-          const x1 = left + clamp01(part.start) * plotWidth;
-          const x2 = left + clamp01(part.end) * plotWidth;
-          if(x2 - x1 <= 0.5) return;
-          const value = field==='cascade' ? predicted.pCascade : predicted.pCorrect;
+          const start = Math.max(domainLo, part.start);
+          const end = Math.min(domainHi, part.end);
+          if(end <= start + 1e-12) return;
+          const x1 = xScale(start);
+          const x2 = xScale(end);
+          if(Math.abs(x2 - x1) <= 0.5) return;
+          const value = field==='cascade' ? predicted.pCascade : field==='correct' ? predicted.pCorrect : predicted.cc;
           const y = top + height - clamp01(value) * height;
           const line=document.createElementNS('http://www.w3.org/2000/svg','line');
           line.setAttribute('x1',x1); line.setAttribute('x2',x2);
@@ -2186,7 +2622,6 @@ function redrawAllStackedFigures(){
       drawStep('correct', 'var(--good)');
     }
 
-    // --- Tab 1: Derived order-parameter plot over τ ---
     function drawCombinedOrderPlot(){
       const svg = el('orderPlot');
       const wrap = svg ? (svg.parentElement || el('ribbonWrap')) : null;
@@ -2257,10 +2692,10 @@ function redrawAllStackedFigures(){
       xLab.textContent='τ';
       svg.appendChild(xLab);
 
-      drawTauHighlightBands(svg, left, top, (W-right)-left, H, {fill:'rgba(245,158,11,0.10)', stroke:'rgba(217,119,6,0.55)', minWidth:4});
-
       const NVal = params?.N || Number(el('N')?.value) || 0;
       const partitionBundle = NVal > 0 ? getTauPartitionBundle(NVal) : null;
+      drawGreatestCorrectCascadeShiftBands(svg, partitionBundle, left, top, (W-right)-left, H, {predictedFill:'var(--phase-best-pred-fill)', predictedStroke:'var(--phase-best-pred-stroke)', simulatedFill:'var(--phase-best-sim-fill)', simulatedStroke:'var(--phase-best-sim-stroke)', minWidth:5});
+      drawTauHighlightBands(svg, left, top, (W-right)-left, H, {fill:'rgba(245,158,11,0.10)', stroke:'rgba(217,119,6,0.55)', minWidth:4});
       if(showPhaseCutoffs && NVal > 2){
         (partitionBundle?.partitions || [])
           .map(part=>part.threshold)
@@ -2311,22 +2746,51 @@ function redrawAllStackedFigures(){
 
       updateLineLegendState();
       const tip=document.getElementById('ribbonTip');
-      function showTip(evt, idx){
+      const phaseHoverBundle = hoverScope==='phase' ? partitionBundle : null;
+      let currentHover = {key:'', ranges:[], idx:-1};
+
+      function tauBinRange(idx){
+        const tau = idx / ((tauCols-1) || 1);
+        const step = 1 / Math.max(1, tauCols-1);
+        return {start: Math.max(0, tau - step/2), end: Math.min(1, tau + step/2)};
+      }
+      function showTipHTML(evt, html){
         if(!tip) return;
-        const tau = cascadePts[idx][2];
-        const pC = cascadePts[idx][3];
-        const pA = correctPts[idx][3];
-        const pred = showAnalyticProfiles ? computeExactOutcomeProfileForTau(tau, params?.p ?? Number(el('p')?.value) ?? 0.5, params?.q ?? Number(el('q')?.value) ?? 0.7, params?.N ?? Number(el('N')?.value) ?? 0) : null;
-        const simulatedHTML = showSimulatedData ? `<div class="tooltip-stack-row"><span class="tooltip-stack-label"><span class="tooltip-dot" style="background:var(--ink-2)"></span>Simulated P(cascade)</span><span><b>${pC.toFixed(3)}</b></span></div>
-          <div class="tooltip-stack-row"><span class="tooltip-stack-label"><span class="tooltip-dot" style="background:var(--good)"></span>Simulated P(accurate aggregate vote)</span><span><b>${pA.toFixed(3)}</b></span></div>` : '';
-        const predHTML = pred ? `<div style="margin-top:6px;font-size:.78rem;color:#475569">Exact value at this τ</div>
-          <div class="tooltip-stack-row"><span class="tooltip-stack-label"><span class="tooltip-dot" style="background:var(--ink-2)"></span>Predicted P(cascade)</span><span><b>${pred.pCascade.toFixed(3)}</b></span></div>
-          <div class="tooltip-stack-row"><span class="tooltip-stack-label"><span class="tooltip-dot" style="background:var(--good)"></span>Predicted P(accurate aggregate vote)</span><span><b>${pred.pCorrect.toFixed(3)}</b></span></div>` : '';
-        const html = `<div style="font-weight:700;margin-bottom:4px">τ = ${tau.toFixed(tauCols>=1000?3:2)}</div>${simulatedHTML || predHTML ? '' : '<div style="color:#475569">No data layers are currently visible.</div>'}${simulatedHTML}${predHTML}`;
         tip.innerHTML = html;
         tip.style.display='block';
         tip.style.left=(evt.clientX+12)+'px';
         tip.style.top=(evt.clientY+12)+'px';
+      }
+      function showTauTip(evt, idx){
+        const tau = cascadePts[idx][2];
+        const pC = cascadePts[idx][3];
+        const pA = correctPts[idx][3];
+        const pred = showAnalyticProfiles ? computeExactOutcomeProfileForTau(tau, params?.p ?? Number(el('p')?.value) ?? 0.5, params?.q ?? Number(el('q')?.value) ?? 0.7, params?.N ?? Number(el('N')?.value) ?? 0) : null;
+        const d = tauSweep ? tauSweep[idx] : null;
+        const part = partitionBundle ? findTauPartitionForValue(tau, partitionBundle.partitions) : null;
+        const macroBlock = part ? tooltipSectionHTML('Macro phase', `<div class="tooltip-note">Phase <span class="math-inline">P${part.phase}</span> · <span class="math-inline">τ ∈ ${formatPartitionInterval(part, partitionBundle.decimals)}</span>${part.impossible ? '' : ` · barrier <span class="math-inline">m = ${part.minMargin}</span>`}</div>`) : '';
+        const simulatedHTML = showSimulatedData && d?.total ? tooltipSectionHTML('Empirical at this τ', `${tooltipMetricRowHTML('<span class="math-inline">P(cascade)</span>', pC.toFixed(3))}${tooltipMetricRowHTML('<span class="math-inline">P(correct aggregate vote)</span>', pA.toFixed(3))}${tooltipMetricRowHTML('<span class="math-inline">P(correct cascade)</span>', ((d.cc||0)/(d.total||1)).toFixed(3))}`) : '';
+        const predHTML = pred ? buildPredictedTauSummaryHTML(pred, 'Predicted at this τ') : '';
+        const html = `<div style="font-weight:700;margin-bottom:4px"><span class="math-inline">τ = ${tau.toFixed(tauCols>=1000?3:2)}</span></div>${macroBlock}${buildMicroBuildupHTML(tau, part)}${simulatedHTML || predHTML ? '' : '<div style="color:#475569">No data layers are currently visible.</div>'}${simulatedHTML}${predHTML}`;
+        showTipHTML(evt, html);
+        currentHover = {key:`order-tau-bin-${idx}`, ranges:[tauBinRange(idx)], idx};
+      }
+      function showPhaseTip(evt, idx){
+        const tau = cascadePts[idx][2];
+        const part = findTauPartitionForValue(tau, phaseHoverBundle?.partitions || []);
+        if(!part){
+          showTauTip(evt, idx);
+          return;
+        }
+        const key = `order-${phaseRowKey(part, phaseHoverBundle.decimals)}`;
+        const ranges = [{start:part.start, end:part.end}];
+        showTipHTML(evt, buildPhaseTooltipHTML(part, tau, phaseHoverBundle.decimals, phaseHoverBundle));
+        if(currentHover.key !== key){
+          currentHover = {key, ranges, part, idx};
+          setHoverTauHighlights(ranges, key);
+        } else {
+          currentHover.idx = idx;
+        }
       }
       function hideTip(){
         if(!tip) return;
@@ -2386,13 +2850,23 @@ function redrawAllStackedFigures(){
           dot1.style.display='none';
           dot2.style.display='none';
         }
-        showTip(e, idx);
+        if(hoverScope==='phase') showPhaseTip(e, idx);
+        else showTauTip(e, idx);
       });
       hit.addEventListener('mouseleave',()=>{
+        if(hoverScope==='phase' && currentHover.key){
+          clearHoverTauHighlights(currentHover.key);
+        }
+        currentHover = {key:'', ranges:[], idx:-1};
         dot1.style.display='none';
         dot2.style.display='none';
         hoverLine.style.display='none';
         hideTip();
+      });
+      hit.addEventListener('click',(e)=>{
+        if(!currentHover.key || !currentHover.ranges?.length) return;
+        e.preventDefault();
+        togglePinnedTauHighlights(currentHover.ranges, currentHover.key);
       });
       svg.appendChild(hit);
     }
@@ -2628,9 +3102,10 @@ function exportRibbonSVG(){
       }
 
       const NVal = params?.N || Number(el('N')?.value) || 0;
-      const partitionBundle = (hoverScope==='phase' || showAnalyticProfiles || showPhaseCutoffs) && NVal > 0 ? getTauPartitionBundle(NVal) : null;
+      const partitionBundle = (hoverScope==='phase' || showAnalyticProfiles || showPhaseCutoffs || showMaxCorrectCascadeChangeHighlight) && NVal > 0 ? getTauPartitionBundle(NVal) : null;
       drawRibbonThresholds(svg, partitionBundle, left, top, plotWidth, H);
       drawRibbonPredictionOverlay(svg, partitionBundle, left, top, plotWidth, H);
+      drawGreatestCorrectCascadeShiftBands(svg, partitionBundle, left, top, plotWidth, H, {predictedFill:'var(--phase-best-pred-fill)', predictedStroke:'var(--phase-best-pred-stroke)', simulatedFill:'var(--phase-best-sim-fill)', simulatedStroke:'var(--phase-best-sim-stroke)', minWidth:Math.max(4,colWidth)});
       drawTauHighlightBands(svg, left, top, plotWidth, H, {fill:'rgba(245,158,11,0.16)', stroke:'rgba(217,119,6,0.75)', minWidth:Math.max(3,colWidth)});
 
       const hi=document.createElementNS('http://www.w3.org/2000/svg','rect');
@@ -2671,14 +3146,11 @@ function exportRibbonSVG(){
         const tauValue = idx / ((cols-1)||1);
         const exactTau = showAnalyticProfiles ? computeExactOutcomeProfileForTau(tauValue, params?.p ?? Number(el('p')?.value) ?? 0.5, params?.q ?? Number(el('q')?.value) ?? 0.7, params?.N ?? Number(el('N')?.value) ?? 0) : null;
         const part = partitionBundle ? findTauPartitionForValue(tauValue, partitionBundle.partitions) : null;
-        const phaseInfo = ((showAnalyticProfiles || showPhaseCutoffs) && part) ? `<div style="color:#334155">Phase <b>P${part.phase}</b> · ${part.impossible ? 'no reachable cascade barrier' : `barrier <b>m = ${part.minMargin}</b>`}</div>` : '';
-        const simulatedBlock = showSimulatedData ? `${buildStackTooltipRows(d,total)}
-          <div style="margin-top:4px;color:#334155">Total: ${total||0}</div>
-          <div style="margin-top:4px;color:#334155">Mean cascade start index: <b>${meanTxt}</b></div>
-          <div style="color:#334155">Variance of cascade start: <b>${varTxt}</b></div>` : '';
-        const phaseProfileBlock = part ? `${showSimulatedData ? buildPhaseMetricTooltipRows(part, partitionBundle, 'simulated', 'phase mean') : ''}${showAnalyticProfiles ? buildPhaseMetricTooltipRows(part, partitionBundle, 'predicted', 'phase prediction') : ''}` : '';
-        const predictedBlock = exactTau ? `<div style="margin-top:6px;font-size:.78rem;color:#475569">Exact value at this τ</div><div class="tooltip-stack-row"><span class="tooltip-stack-label">P(cascade)</span><span><b>${exactTau.pCascade.toFixed(3)}</b></span></div><div class="tooltip-stack-row"><span class="tooltip-stack-label">P(correct)</span><span><b>${exactTau.pCorrect.toFixed(3)}</b></span></div>` : '';
-        const html=`<div style="font-weight:700;margin-bottom:4px">τ = ${tauLabelForIndex(idx, cols)}${total?'':' (no data)'}</div>${phaseInfo}${simulatedBlock || phaseProfileBlock || predictedBlock ? '' : '<div style="color:#475569">No data layers are currently visible.</div>'}${simulatedBlock}${phaseProfileBlock}${predictedBlock}`;
+        const macroBlock = part ? tooltipSectionHTML('Macro phase', `<div class="tooltip-note">Phase <span class="math-inline">P${part.phase}</span> · <span class="math-inline">τ ∈ ${formatPartitionInterval(part, partitionBundle.decimals)}</span>${part.impossible ? '' : ` · barrier <span class="math-inline">m = ${part.minMargin}</span>`}</div>`) : '';
+        const highlightInfo = part ? phaseHighlightInfoHTML(part, partitionBundle) : '';
+        const simulatedBlock = showSimulatedData ? buildEmpiricalTauSummaryHTML(d, total, 'Empirical at this τ') : '';
+        const predictedBlock = exactTau ? buildPredictedTauSummaryHTML(exactTau, 'Predicted at this τ') : '';
+        const html=`<div style="font-weight:700;margin-bottom:4px"><span class="math-inline">τ = ${tauLabelForIndex(idx, cols)}</span>${total?'':' (no data)'}</div>${macroBlock}${buildMicroBuildupHTML(tauValue, part)}${highlightInfo}${simulatedBlock || predictedBlock ? '' : '<div style="color:#475569">No data layers are currently visible.</div>'}${simulatedBlock}${predictedBlock}`;
         showTipHTML(evt, html);
         const xCol=left+idx*colWidth;
         hi.setAttribute('fill','none');
@@ -2755,7 +3227,9 @@ function exportRibbonSVG(){
       if(!opts.skipMetaPanels){
         renderTauPartitions();
       }
+      updateGlobalPhaseCallout();
 }
+
 
     // --- Tab 2 grid logic (unchanged) ---
     let gridStats = null;
@@ -2771,19 +3245,28 @@ function exportRibbonSVG(){
       return out;
     }
 
-    function drawMiniRibbon(svgElem, stats){
+    function drawMiniRibbon(svgElem, stats, opts={}){
       const cols = stats.length;
       const width = 320;
       const height = 220;
+      const left = 26, right=10, top=10, bottom=24;
+      const H = height - top - bottom;
+      const plotWidth = width - left - right;
+      const tauVals = Array.from({length:cols}, (_, idx)=> cols > 1 ? idx/(cols-1) : 0);
+      const tauMin = tauVals[0] ?? 0;
+      const tauMax = tauVals[tauVals.length-1] ?? 1;
+      const xScale = makeTauScale(left, plotWidth, tauMin, tauMax);
+      const binRects = tauVals.map((tau, idx)=>{
+        const range = tauBinRangeFromValues(tauVals, idx, tauMin, tauMax);
+        const x1 = xScale(range.start);
+        const x2 = xScale(range.end);
+        return {range, x:x1, width:Math.max(1, x2 - x1)};
+      });
+
       svgElem.setAttribute('width', width);
       svgElem.setAttribute('height', height);
       svgElem.setAttribute('viewBox', `0 0 ${width} ${height}`);
       while(svgElem.firstChild) svgElem.removeChild(svgElem.firstChild);
-
-      const left = 26, right=10, top=10, bottom=24;
-      const H = height - top - bottom;
-      const plotWidth = width - left - right;
-      const colWidth = plotWidth / cols;
 
       const bg=document.createElementNS('http://www.w3.org/2000/svg','rect');
       bg.setAttribute('x',0);
@@ -2812,20 +3295,8 @@ function exportRibbonSVG(){
       svgElem.appendChild(xAxis);
 
       let maxTotal = 0;
-      for(let i=0;i<cols;i++){
-        if(stats[i].total>maxTotal) maxTotal = stats[i].total;
-      }
-      if(maxTotal<=0){
-        const txt=document.createElementNS('http://www.w3.org/2000/svg','text');
-        txt.setAttribute('x',width/2);
-        txt.setAttribute('y',height/2+3);
-        txt.setAttribute('text-anchor','middle');
-        txt.setAttribute('font-size','10');
-        txt.setAttribute('fill','#9ca3af');
-        txt.textContent='no data';
-        svgElem.appendChild(txt);
-        return;
-      }
+      for(let i=0;i<cols;i++) if(stats[i].total>maxTotal) maxTotal = stats[i].total;
+      if(maxTotal<=0) maxTotal = 1;
 
       const steps=3;
       for(let j=0;j<=steps;j++){
@@ -2849,8 +3320,8 @@ function exportRibbonSVG(){
       }
 
       [0,0.5,1].forEach(v=>{
-        const idx=v*(cols-1);
-        const x = left + (idx/cols)*plotWidth;
+        const tau = tauMin + (tauMax - tauMin) * v;
+        const x = xScale(tau);
         const tick=document.createElementNS('http://www.w3.org/2000/svg','line');
         tick.setAttribute('x1',x);
         tick.setAttribute('x2',x);
@@ -2865,7 +3336,7 @@ function exportRibbonSVG(){
         lab.setAttribute('text-anchor','middle');
         lab.setAttribute('font-size','8');
         lab.setAttribute('fill','#6b7280');
-        lab.textContent=v.toFixed(1);
+        lab.textContent=tau.toFixed(1);
         svgElem.appendChild(lab);
       });
 
@@ -2878,25 +3349,33 @@ function exportRibbonSVG(){
       xLab.textContent='τ';
       svgElem.appendChild(xLab);
 
-      for(let idx=0;idx<cols;idx++){
-        const d = stats[idx];
-        const total = d.total;
-        if(!total) continue;
-        const counts = getStackCounts(d);
-        let y = top + H;
-        for(const seg of counts){
-          const h = (seg.value/maxTotal)*H;
-          if(h<=0) continue;
-          const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
-          rect.setAttribute('x', left + idx*colWidth);
-          rect.setAttribute('y', y - h);
-          rect.setAttribute('width',colWidth);
-          rect.setAttribute('height',h);
-          rect.setAttribute('fill',seg.color);
-          svgElem.appendChild(rect);
-          y -= h;
+      if(showSimulatedData){
+        for(let idx=0;idx<cols;idx++){
+          const d = stats[idx];
+          const total = d.total;
+          if(!total) continue;
+          const counts = getStackCounts(d);
+          let y = top + H;
+          for(const seg of counts){
+            const h = (seg.value/maxTotal)*H;
+            if(h<=0) continue;
+            const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
+            rect.setAttribute('x', binRects[idx].x);
+            rect.setAttribute('y', y - h);
+            rect.setAttribute('width',binRects[idx].width);
+            rect.setAttribute('height',h);
+            rect.setAttribute('fill',seg.color);
+            svgElem.appendChild(rect);
+            y -= h;
+          }
         }
       }
+
+      const baseBundle = opts.phaseBundle || null;
+      const bundle = baseBundle ? getSeriesTauPartitionBundle(baseBundle, stats, tauVals) : null;
+      drawRibbonThresholds(svgElem, bundle, left, top, plotWidth, H, {xScale, domainMin:tauMin, domainMax:tauMax});
+      drawRibbonPredictionOverlay(svgElem, bundle, left, top, plotWidth, H, {xScale, domainMin:tauMin, domainMax:tauMax});
+      drawGreatestCorrectCascadeShiftBands(svgElem, bundle, left, top, plotWidth, H, {predictedFill:'var(--phase-best-pred-fill)', predictedStroke:'var(--phase-best-pred-stroke)', simulatedFill:'var(--phase-best-sim-fill)', simulatedStroke:'var(--phase-best-sim-stroke)', minWidth:Math.max(3, plotWidth/Math.max(1, cols)), xScale, domainMin:tauMin, domainMax:tauMax});
 
       const hi=document.createElementNS('http://www.w3.org/2000/svg','rect');
       hi.setAttribute('fill','none');
@@ -2906,7 +3385,12 @@ function exportRibbonSVG(){
       svgElem.appendChild(hi);
 
       const tip = document.getElementById('ribbonTip');
-      function showIdx(idx,evt){
+      let currentHover = {key:'', ranges:[], idx:-1};
+      const nVal = Number(opts.nVal ?? el('NGrid')?.value) || 0;
+      const pVal = opts.pVal ?? bundle?.pVal ?? 0.5;
+      const qVal = opts.qVal ?? bundle?.qVal ?? 0.7;
+
+      function showTauBin(idx, evt){
         idx=Math.max(0,Math.min(cols-1,idx|0));
         const d = stats[idx];
         const total = d.total;
@@ -2917,41 +3401,76 @@ function exportRibbonSVG(){
           meanTxt=m.toFixed(2);
           varTxt=v.toFixed(2);
         }
-        const tau = (idx/(cols-1)).toFixed(2);
-        const html=`<div style="font-weight:700;margin-bottom:4px">τ = ${tau}${total?'':' (no data)'}</div>
-          ${buildStackTooltipRows(d,total)}
-          <div style="margin-top:4px;color:#334155">Total: ${total||0}</div>
-          <div style="margin-top:4px;color:#334155">Mean cascade start index: <b>${meanTxt}</b></div>
-          <div style="color:#334155">Variance of cascade start: <b>${varTxt}</b></div>`;
-        if(!tip) return;
-        tip.innerHTML=html;
-        tip.style.display='block';
-        tip.style.left=(evt.clientX+12)+'px';
-        tip.style.top=(evt.clientY+12)+'px';
-
-        const xCol = left + idx*colWidth;
-        hi.setAttribute('x',xCol);
+        const tauValue = tauVals[idx];
+        const part = bundle ? findTauPartitionForValue(tauValue, bundle.partitions) : null;
+        const exactTau = showAnalyticProfiles && nVal > 0 ? computeExactOutcomeProfileForTau(tauValue, pVal, qVal, nVal) : null;
+        const macroBlock = part ? tooltipSectionHTML('Macro phase', `<div class="tooltip-note">Phase <span class="math-inline">P${part.phase}</span> · <span class="math-inline">τ ∈ ${formatPartitionInterval(part, bundle.decimals)}</span>${part.impossible ? '' : ` · barrier <span class="math-inline">m = ${part.minMargin}</span>`}</div>`) : '';
+        const highlightInfo = part ? phaseHighlightInfoHTML(part, bundle) : '';
+        const simulatedBlock = showSimulatedData ? buildEmpiricalTauSummaryHTML(d, total, 'Empirical at this τ') : '';
+        const predictedBlock = exactTau ? buildPredictedTauSummaryHTML(exactTau, 'Predicted at this τ') : '';
+        const html=`<div style="font-weight:700;margin-bottom:4px"><span class="math-inline">τ = ${tauValue.toFixed(3)}</span>${total?'':' (no data)'}</div>${macroBlock}${buildMicroBuildupHTML(tauValue, part)}${highlightInfo}${simulatedBlock || predictedBlock ? '' : '<div style="color:#475569">No data layers are currently visible.</div>'}${simulatedBlock}${predictedBlock}`;
+        positionRibbonTip(tip, evt, html);
+        hi.setAttribute('fill','none');
+        hi.setAttribute('stroke','rgba(15,23,42,0.6)');
+        hi.setAttribute('x',binRects[idx].x);
         hi.setAttribute('y',top-0.5);
-        hi.setAttribute('width',colWidth);
+        hi.setAttribute('width',binRects[idx].width);
         hi.setAttribute('height',H+1);
-      }
-      function hideTip(){
-        if(!tip) return;
-        tip.style.display='none';
-        hi.setAttribute('width','0');
+        currentHover = {key:`grid-tau-bin-${idx}`, ranges:[binRects[idx].range], idx};
       }
 
-      for(let idx=0; idx<cols; idx++){
-        const hit=document.createElementNS('http://www.w3.org/2000/svg','rect');
-        hit.setAttribute('x',left+idx*colWidth);
-        hit.setAttribute('y',top);
-        hit.setAttribute('width',colWidth);
-        hit.setAttribute('height',H);
-        hit.setAttribute('fill','transparent');
-        hit.addEventListener('mousemove',(e)=>showIdx(idx,e));
-        hit.addEventListener('mouseleave',hideTip);
-        svgElem.appendChild(hit);
+      function showPhase(idx, evt){
+        idx=Math.max(0,Math.min(cols-1,idx|0));
+        const tauValue = tauVals[idx];
+        const part = findTauPartitionForValue(tauValue, bundle?.partitions || []);
+        if(!part){
+          showTauBin(idx, evt);
+          return;
+        }
+        const key = `grid-${phaseRowKey(part, bundle.decimals)}`;
+        const ranges = [{start:part.start, end:part.end}];
+        positionRibbonTip(tip, evt, buildPhaseTooltipHTML(part, tauValue, bundle.decimals, bundle));
+        const guideW = Math.max(2, Math.min(4, binRects[idx].width * 0.45));
+        const xCenter = binRects[idx].x + binRects[idx].width / 2;
+        hi.setAttribute('fill','rgba(15,23,42,0.10)');
+        hi.setAttribute('stroke','rgba(15,23,42,0.45)');
+        hi.setAttribute('x',Math.max(left, Math.min(left + plotWidth - guideW, xCenter - guideW/2)));
+        hi.setAttribute('y',top-0.5);
+        hi.setAttribute('width',guideW);
+        hi.setAttribute('height',H+1);
+        if(currentHover.key !== key){
+          currentHover = {key, ranges, idx, part};
+          setHoverTauHighlights(ranges, key);
+        } else {
+          currentHover.idx = idx;
+        }
       }
+
+      function hideTip(){
+        if(hoverScope==='phase' && currentHover.key) clearHoverTauHighlights(currentHover.key);
+        currentHover = {key:'', ranges:[], idx:-1};
+        if(tip) tip.style.display='none';
+        hi.setAttribute('width','0');
+        hi.setAttribute('fill','none');
+        hi.setAttribute('stroke','rgba(15,23,42,0.6)');
+      }
+
+      const hit=document.createElementNS('http://www.w3.org/2000/svg','rect');
+      hit.setAttribute('x',left);
+      hit.setAttribute('y',top);
+      hit.setAttribute('width',plotWidth);
+      hit.setAttribute('height',H);
+      hit.setAttribute('fill','transparent');
+      hit.addEventListener('mousemove',(evt)=>{
+        const rect = svgElem.getBoundingClientRect();
+        const px = evt.clientX - rect.left;
+        const tau = tauMin + clamp01((px - left)/(plotWidth||1)) * (tauMax - tauMin || 1);
+        const idx = nearestTauIndex(tauVals, tau);
+        if(hoverScope==='phase' && bundle) showPhase(idx, evt);
+        else showTauBin(idx, evt);
+      });
+      hit.addEventListener('mouseleave', hideTip);
+      svgElem.appendChild(hit);
     }
 
     function buildGridDOM(){
@@ -3063,7 +3582,7 @@ function exportRibbonSVG(){
           }
           const svgElem = el(`mini-${qi}-${pi}`);
           if(svgElem){
-            drawMiniRibbon(svgElem, statsCell);
+            drawMiniRibbon(svgElem, statsCell, {phaseBundle:getStaticTauPartitionBundle(N, p, q), nVal:N, pVal:p, qVal:q});
           }
         }
       }
@@ -3072,6 +3591,7 @@ function exportRibbonSVG(){
     function clearGrid(){
       const panel = el('gridPanel');
       if(panel) panel.innerHTML='';
+      updateCasesMeta('gridCasesMeta','');
       gridStats = null;
       pVals = [];
       qVals = [];
@@ -3143,16 +3663,23 @@ function exportRibbonSVG(){
       panel.appendChild(frag);
     }
 
-    function drawNRibbon(svgElem, stats, tauVals){
+    function drawNRibbon(svgElem, stats, tauVals, opts={}){
       const cols = tauVals.length;
       const height = 170;
       const wrapW = svgElem.clientWidth || 900;
       const left=40,right=16,top=12,bottom=40;
       const H = height - top - bottom;
-
       const plotWidth=Math.max(420, wrapW-(left+right));
-      const colWidth=plotWidth/cols;
       const W=left+plotWidth+right;
+      const tauMin = tauVals[0] ?? 0;
+      const tauMax = tauVals[tauVals.length-1] ?? 1;
+      const xScale = makeTauScale(left, plotWidth, tauMin, tauMax);
+      const binRects = tauVals.map((tau, idx)=>{
+        const range = tauBinRangeFromValues(tauVals, idx, tauMin, tauMax);
+        const x1 = xScale(range.start);
+        const x2 = xScale(range.end);
+        return {range, x:x1, width:Math.max(1, x2 - x1)};
+      });
 
       svgElem.setAttribute('width', W);
       svgElem.setAttribute('height', height);
@@ -3178,9 +3705,7 @@ function exportRibbonSVG(){
       svgElem.appendChild(xAxis);
 
       let maxTotal=0;
-      for(let i=0;i<cols;i++){
-        if(stats[i].total>maxTotal) maxTotal=stats[i].total;
-      }
+      for(let i=0;i<cols;i++) if(stats[i].total>maxTotal) maxTotal=stats[i].total;
       if(maxTotal<=0) maxTotal=1;
 
       const steps=3;
@@ -3205,16 +3730,8 @@ function exportRibbonSVG(){
         svgElem.appendChild(lab);
       }
 
-      // x ticks at endpoints + mid (nearest bins)
-      const minTau=tauVals[0], maxTau=tauVals[tauVals.length-1];
-      const tickVals=[minTau,(minTau+maxTau)/2,maxTau];
-      tickVals.forEach(v=>{
-        let idx=0, best=Infinity;
-        for(let i=0;i<tauVals.length;i++){
-          const d=Math.abs(tauVals[i]-v);
-          if(d<best){best=d; idx=i;}
-        }
-        const x=left + idx*colWidth + colWidth/2;
+      [tauMin, (tauMin+tauMax)/2, tauMax].forEach(v=>{
+        const x=xScale(v);
         const tick=document.createElementNS('http://www.w3.org/2000/svg','line');
         tick.setAttribute('x1',x);
         tick.setAttribute('x2',x);
@@ -3243,24 +3760,32 @@ function exportRibbonSVG(){
       xLab.textContent='τ';
       svgElem.appendChild(xLab);
 
-      for(let idx=0;idx<cols;idx++){
-        const d=stats[idx];
-        if(!d.total) continue;
-        const counts=getStackCounts(d);
-        let y=top+H;
-        for(const seg of counts){
-          const h=(seg.value/maxTotal)*H;
-          if(h<=0) continue;
-          const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
-          rect.setAttribute('x',left+idx*colWidth);
-          rect.setAttribute('y',y-h);
-          rect.setAttribute('width',colWidth);
-          rect.setAttribute('height',h);
-          rect.setAttribute('fill',seg.color);
-          svgElem.appendChild(rect);
-          y-=h;
+      if(showSimulatedData){
+        for(let idx=0;idx<cols;idx++){
+          const d=stats[idx];
+          if(!d.total) continue;
+          const counts=getStackCounts(d);
+          let y=top+H;
+          for(const seg of counts){
+            const h=(seg.value/maxTotal)*H;
+            if(h<=0) continue;
+            const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
+            rect.setAttribute('x',binRects[idx].x);
+            rect.setAttribute('y',y-h);
+            rect.setAttribute('width',binRects[idx].width);
+            rect.setAttribute('height',h);
+            rect.setAttribute('fill',seg.color);
+            svgElem.appendChild(rect);
+            y-=h;
+          }
         }
       }
+
+      const baseBundle = opts.phaseBundle || null;
+      const bundle = baseBundle ? getSeriesTauPartitionBundle(baseBundle, stats, tauVals) : null;
+      drawRibbonThresholds(svgElem, bundle, left, top, plotWidth, H, {xScale, domainMin:tauMin, domainMax:tauMax});
+      drawRibbonPredictionOverlay(svgElem, bundle, left, top, plotWidth, H, {xScale, domainMin:tauMin, domainMax:tauMax});
+      drawGreatestCorrectCascadeShiftBands(svgElem, bundle, left, top, plotWidth, H, {predictedFill:'var(--phase-best-pred-fill)', predictedStroke:'var(--phase-best-pred-stroke)', simulatedFill:'var(--phase-best-sim-fill)', simulatedStroke:'var(--phase-best-sim-stroke)', minWidth:Math.max(3, plotWidth/Math.max(1, cols)), xScale, domainMin:tauMin, domainMax:tauMax});
 
       const hi=document.createElementNS('http://www.w3.org/2000/svg','rect');
       hi.setAttribute('fill','none');
@@ -3270,7 +3795,13 @@ function exportRibbonSVG(){
       svgElem.appendChild(hi);
 
       const tip=document.getElementById('ribbonTip');
-      function showIdx(idx,evt){
+      let currentHover = {key:'', ranges:[], idx:-1};
+      const nVal = Number(opts.nVal ?? 0) || 0;
+      const pVal = opts.pVal ?? bundle?.pVal ?? 0.5;
+      const qVal = opts.qVal ?? bundle?.qVal ?? 0.7;
+      const scopePrefix = opts.scopePrefix || 'tau';
+
+      function showTauBin(idx,evt){
         idx=Math.max(0,Math.min(cols-1,idx|0));
         const d=stats[idx];
         const total=d.total;
@@ -3281,40 +3812,76 @@ function exportRibbonSVG(){
           meanTxt=m.toFixed(2);
           varTxt=v.toFixed(2);
         }
-        const html=`<div style="font-weight:700;margin-bottom:4px">τ = ${tauVals[idx].toFixed(3)}${total?'':' (no data)'}</div>
-          ${buildStackTooltipRows(d,total)}
-          <div style="margin-top:4px;color:#334155">Total: ${total||0}</div>
-          <div style="margin-top:4px;color:#334155">Mean cascade start index: <b>${meanTxt}</b></div>
-          <div style="color:#334155">Variance of cascade start: <b>${varTxt}</b></div>`;
-        if(!tip) return;
-        tip.innerHTML=html;
-        tip.style.display='block';
-        tip.style.left=(evt.clientX+12)+'px';
-        tip.style.top=(evt.clientY+12)+'px';
-
-        const xCol=left+idx*colWidth;
-        hi.setAttribute('x',xCol);
+        const tauValue = tauVals[idx];
+        const part = bundle ? findTauPartitionForValue(tauValue, bundle.partitions) : null;
+        const exactTau = showAnalyticProfiles && nVal > 0 ? computeExactOutcomeProfileForTau(tauValue, pVal, qVal, nVal) : null;
+        const macroBlock = part ? tooltipSectionHTML('Macro phase', `<div class="tooltip-note">Phase <span class="math-inline">P${part.phase}</span> · <span class="math-inline">τ ∈ ${formatPartitionInterval(part, bundle.decimals)}</span>${part.impossible ? '' : ` · barrier <span class="math-inline">m = ${part.minMargin}</span>`}</div>`) : '';
+        const highlightInfo = part ? phaseHighlightInfoHTML(part, bundle) : '';
+        const simulatedBlock = showSimulatedData ? buildEmpiricalTauSummaryHTML(d, total, 'Empirical at this τ') : '';
+        const predictedBlock = exactTau ? buildPredictedTauSummaryHTML(exactTau, 'Predicted at this τ') : '';
+        const html=`<div style="font-weight:700;margin-bottom:4px"><span class="math-inline">τ = ${tauValue.toFixed(3)}</span>${total?'':' (no data)'}</div>${macroBlock}${buildMicroBuildupHTML(tauValue, part)}${highlightInfo}${simulatedBlock || predictedBlock ? '' : '<div style="color:#475569">No data layers are currently visible.</div>'}${simulatedBlock}${predictedBlock}`;
+        positionRibbonTip(tip, evt, html);
+        hi.setAttribute('fill','none');
+        hi.setAttribute('stroke','rgba(15,23,42,0.6)');
+        hi.setAttribute('x',binRects[idx].x);
         hi.setAttribute('y',top-0.5);
-        hi.setAttribute('width',colWidth);
+        hi.setAttribute('width',binRects[idx].width);
         hi.setAttribute('height',H+1);
-      }
-      function hideTip(){
-        if(!tip) return;
-        tip.style.display='none';
-        hi.setAttribute('width','0');
+        currentHover = {key:`${scopePrefix}-tau-bin-${idx}`, ranges:[binRects[idx].range], idx};
       }
 
-      for(let idx=0; idx<cols; idx++){
-        const hit=document.createElementNS('http://www.w3.org/2000/svg','rect');
-        hit.setAttribute('x',left+idx*colWidth);
-        hit.setAttribute('y',top);
-        hit.setAttribute('width',colWidth);
-        hit.setAttribute('height',H);
-        hit.setAttribute('fill','transparent');
-        hit.addEventListener('mousemove',(e)=>showIdx(idx,e));
-        hit.addEventListener('mouseleave',hideTip);
-        svgElem.appendChild(hit);
+      function showPhase(idx, evt){
+        idx=Math.max(0,Math.min(cols-1,idx|0));
+        const tauValue = tauVals[idx];
+        const part = findTauPartitionForValue(tauValue, bundle?.partitions || []);
+        if(!part){
+          showTauBin(idx, evt);
+          return;
+        }
+        const key = `${scopePrefix}-${phaseRowKey(part, bundle.decimals)}`;
+        const ranges = [{start:part.start, end:part.end}];
+        positionRibbonTip(tip, evt, buildPhaseTooltipHTML(part, tauValue, bundle.decimals, bundle));
+        const guideW = Math.max(2, Math.min(4, binRects[idx].width * 0.45));
+        const xCenter = binRects[idx].x + binRects[idx].width / 2;
+        hi.setAttribute('fill','rgba(15,23,42,0.10)');
+        hi.setAttribute('stroke','rgba(15,23,42,0.45)');
+        hi.setAttribute('x',Math.max(left, Math.min(left + plotWidth - guideW, xCenter - guideW/2)));
+        hi.setAttribute('y',top-0.5);
+        hi.setAttribute('width',guideW);
+        hi.setAttribute('height',H+1);
+        if(currentHover.key !== key){
+          currentHover = {key, ranges, idx, part};
+          setHoverTauHighlights(ranges, key);
+        } else {
+          currentHover.idx = idx;
+        }
       }
+
+      function hideTip(){
+        if(hoverScope==='phase' && currentHover.key) clearHoverTauHighlights(currentHover.key);
+        currentHover = {key:'', ranges:[], idx:-1};
+        if(tip) tip.style.display='none';
+        hi.setAttribute('width','0');
+        hi.setAttribute('fill','none');
+        hi.setAttribute('stroke','rgba(15,23,42,0.6)');
+      }
+
+      const hit=document.createElementNS('http://www.w3.org/2000/svg','rect');
+      hit.setAttribute('x',left);
+      hit.setAttribute('y',top);
+      hit.setAttribute('width',plotWidth);
+      hit.setAttribute('height',H);
+      hit.setAttribute('fill','transparent');
+      hit.addEventListener('mousemove',(evt)=>{
+        const rect = svgElem.getBoundingClientRect();
+        const px = evt.clientX - rect.left;
+        const tau = tauMin + clamp01((px - left)/(plotWidth||1)) * (tauMax - tauMin || 1);
+        const idx = nearestTauIndex(tauVals, tau);
+        if(hoverScope==='phase' && bundle) showPhase(idx, evt);
+        else showTauBin(idx, evt);
+      });
+      hit.addEventListener('mouseleave', hideTip);
+      svgElem.appendChild(hit);
     }
 
     // --- FIXED: One τ at Nmax, evaluate prefix N; tie-breaking is on-demand and uses separate RNG ---
@@ -3440,7 +4007,7 @@ function exportRibbonSVG(){
       yLab.setAttribute('text-anchor','middle');
       yLab.setAttribute('font-size','14');
       yLab.setAttribute('fill','#334155');
-      yLab.textContent='P(correct)';
+      yLab.textContent='P(correct aggregate vote)';
       svg.appendChild(yLab);
 
       if(!successByN.tau0 || !successByN.tau1) return;
@@ -3476,7 +4043,7 @@ function exportRibbonSVG(){
         if(!tip) return;
         tip.innerHTML = `<div style="font-weight:700;margin-bottom:4px">${tauLabel}</div>
           <div>N = <b>${N}</b></div>
-          <div>P(correct) = <b>${p.toFixed(3)}</b></div>`;
+          <div>P(correct aggregate vote) = <b>${p.toFixed(3)}</b></div>`;
         tip.style.display='block';
         tip.style.left=(evt.clientX+12)+'px';
         tip.style.top=(evt.clientY+12)+'px';
@@ -3615,12 +4182,13 @@ function exportRibbonSVG(){
         }
       }
 
+      updateCasesMeta('nCasesMeta', `Signal sequences per N and τ: ${B.toLocaleString()}`);
       ensureNPanel();
 
       for(let N=nMax; N>=nMin; N--){
         const svgElem = el(`nsvg-${N}`);
         if(!svgElem) continue;
-        drawNRibbon(svgElem, nSweep[N - nMin], nTauVals);
+        drawNRibbon(svgElem, nSweep[N - nMin], nTauVals, {phaseBundle:getStaticTauPartitionBundle(N, Number(el('pN')?.value)||0.5, Number(el('qN')?.value)||0.7), nVal:N, pVal:Number(el('pN')?.value)||0.5, qVal:Number(el('qN')?.value)||0.7, scopePrefix:`n-${N}`});
       }
 
       drawSuccessPlot();
@@ -3632,6 +4200,7 @@ function exportRibbonSVG(){
     function clearNSweep(){
       const panel = el('nPanel');
       if(panel) panel.innerHTML='';
+      updateCasesMeta('nCasesMeta','');
       nSweep=null;
       nTauVals=[];
       successByN = { tau0: null, tau1: null, totals0: null, totals1: null };
@@ -3784,7 +4353,7 @@ function exportRibbonSVG(){
       yLab.setAttribute('text-anchor','middle');
       yLab.setAttribute('font-size','14');
       yLab.setAttribute('fill','#334155');
-      yLab.textContent='P(correct)';
+      yLab.textContent='P(correct aggregate vote)';
       svg.appendChild(yLab);
 
       function yOf(p){ return top + H - p*H; }
@@ -3816,7 +4385,7 @@ function exportRibbonSVG(){
         if(!tip) return;
         tip.innerHTML = `<div style="font-weight:700;margin-bottom:4px">${tauLabel}</div>
           <div>q = <b>${qv.toFixed(3)}</b></div>
-          <div>P(correct) = <b>${p.toFixed(3)}</b></div>`;
+          <div>P(correct aggregate vote) = <b>${p.toFixed(3)}</b></div>`;
         tip.style.display='block';
         tip.style.left=(evt.clientX+12)+'px';
         tip.style.top=(evt.clientY+12)+'px';
@@ -3945,12 +4514,13 @@ function exportRibbonSVG(){
         }
       }
 
+      updateCasesMeta('qCasesMeta', `Signal sequences per q and τ: ${B.toLocaleString()}`);
       ensureQPanel();
 
       for(let qi=0; qi<qRangeVals.length; qi++){
         const svgElem = el(`qsvg-${qi}`);
         if(!svgElem) continue;
-        drawNRibbon(svgElem, qSweep[qi], qTauVals);
+        drawNRibbon(svgElem, qSweep[qi], qTauVals, {phaseBundle:getStaticTauPartitionBundle(Number(el('NQ')?.value)||0, Number(el('pQ')?.value)||0.5, qRangeVals[qi]), nVal:Number(el('NQ')?.value)||0, pVal:Number(el('pQ')?.value)||0.5, qVal:qRangeVals[qi], scopePrefix:`q-${qi}`});
       }
 
       drawSuccessPlotQ();
@@ -3959,6 +4529,7 @@ function exportRibbonSVG(){
     function clearQSweep(){
       const panel = el('qPanel');
       if(panel) panel.innerHTML='';
+      updateCasesMeta('qCasesMeta','');
       qSweep=null;
       qTauVals=[];
       qRangeVals=[];
@@ -3968,6 +4539,18 @@ function exportRibbonSVG(){
     }
 
 // --- Wiring ---
+    function mountGlobalCommandBar(targetPaneId){
+      const bar = el('globalCommandBar');
+      const parking = el('commandBarParking');
+      const anchor = targetPaneId ? el(`commandBarAnchor-${targetPaneId}`) : null;
+      if(!bar) return;
+      if(anchor){
+        anchor.appendChild(bar);
+      }else if(parking){
+        parking.appendChild(bar);
+      }
+    }
+
     document.querySelectorAll('.tab-btn').forEach(btn=>{
       btn.addEventListener('click',()=>{
         const target = btn.getAttribute('data-tab');
@@ -3976,8 +4559,11 @@ function exportRibbonSVG(){
         btn.classList.add('active');
         const pane = document.getElementById(target);
         if(pane) pane.classList.add('active');
+        mountGlobalCommandBar(target);
+        updateGlobalPhaseCallout();
       });
     });
+    mountGlobalCommandBar('tab0Pane');
 
     // Tab 1 buttons
     el('btn-new').addEventListener('click',()=>{
@@ -4004,12 +4590,47 @@ function exportRibbonSVG(){
       }
     });
     el('btn-runbatch').addEventListener('click', ()=>{
-      const B = Number(el('batchN').value)||1000;
+      const B = Number(el('batchN').value)||10000;
       simulateBatch(B);
       updateAggUI();
       drawRibbon();
+      refreshFigureCaseMeta();
     });
     el('btn-clearall').addEventListener('click', clearAll);
+
+    const mainRunBtn = el('btn-main-runbatch');
+    if(mainRunBtn){
+      mainRunBtn.addEventListener('click', ()=>{
+        const cfg = getMainSweepParams();
+        if(cfg.p<=0||cfg.p>=1||cfg.q<=0.5||cfg.q>=1||cfg.N<3||cfg.batch<1){
+          alert('Constraints: 0<p<1, 0.5<q<1, N≥3, and batch size ≥ 1.');
+          return;
+        }
+        syncWalkthroughFromMain();
+        params = {p:cfg.p, q:cfg.q, N:cfg.N, taus: [], seed:cfg.seed};
+        rng = mulberry32(cfg.seed);
+        lambda = Math.log(cfg.q/(1-cfg.q));
+        Lprior = Math.log(cfg.p/(1-cfg.p));
+        resetTauSweep();
+        resetTauHighlights();
+        simulateSweepBatch(cfg.batch, cfg);
+        drawRibbon();
+        drawTab1SummaryPlots();
+        renderTauPartitions();
+        refreshFigureCaseMeta();
+      });
+    }
+    const mainClearBtn = el('btn-main-clear');
+    if(mainClearBtn){
+      mainClearBtn.addEventListener('click', ()=>{
+        resetTauSweep();
+        resetTauHighlights();
+        drawRibbon();
+        drawTab1SummaryPlots();
+        renderTauPartitions();
+        refreshFigureCaseMeta();
+      });
+    }
 
     (function initStackModeToggle(){
       updateStackLegends();
@@ -4035,7 +4656,7 @@ function exportRibbonSVG(){
           if(tip) tip.style.display='none';
           hoverTauKey = '';
           updateTauHighlightNodeClasses();
-          drawRibbon({skipMetaPanels:true});
+          redrawAllStackedFigures();
         });
       });
     })();
@@ -4043,11 +4664,12 @@ function exportRibbonSVG(){
     (function initVisualizationToggles(){
       const dataChk = el('showDataToggle');
       const analyticOverlayChk = el('showAnalyticOverlayToggle');
+      const maxShiftChk = el('showMaxChangePhaseToggle');
       if(dataChk){
         dataChk.checked = !!showSimulatedData;
         dataChk.addEventListener('change', ()=>{
           showSimulatedData = !!dataChk.checked;
-          drawRibbon({skipMetaPanels:true});
+          redrawAllStackedFigures();
           drawTab1SummaryPlots();
           renderTauPartitions();
         });
@@ -4058,12 +4680,23 @@ function exportRibbonSVG(){
           const on = !!analyticOverlayChk.checked;
           showAnalyticProfiles = on;
           showPhaseCutoffs = on;
-          drawRibbon({skipMetaPanels:true});
+          redrawAllStackedFigures();
           drawTab1SummaryPlots();
           renderTauPartitions();
         });
       }
+      if(maxShiftChk){
+        maxShiftChk.checked = !!showMaxCorrectCascadeChangeHighlight;
+        maxShiftChk.addEventListener('change', ()=>{
+          showMaxCorrectCascadeChangeHighlight = !!maxShiftChk.checked;
+          redrawAllStackedFigures();
+          drawTab1SummaryPlots();
+          renderTauPartitions();
+          updateGlobalPhaseCallout();
+        });
+      }
       updateLineLegendState();
+      updateGlobalPhaseCallout();
     })();
 
     (function initTauResolutionSelect(){
@@ -4110,6 +4743,7 @@ function exportRibbonSVG(){
     updateStackLegends();
     updateHoverScopeToggle();
     drawRibbon();
+    updateGlobalPhaseCallout();
 
     window.addEventListener('resize', ()=>{
       drawRibbon();
@@ -4117,7 +4751,7 @@ function exportRibbonSVG(){
         for(let qi=0; qi<qVals.length; qi++){
           for(let pi=0; pi<pVals.length; pi++){
             const svgElem = el(`mini-${qi}-${pi}`);
-            if(svgElem) drawMiniRibbon(svgElem, gridStats[qi][pi]);
+            if(svgElem) drawMiniRibbon(svgElem, gridStats[qi][pi], {phaseBundle:getStaticTauPartitionBundle(Number(el('NGrid')?.value)||0, pVals[pi], qVals[qi]), nVal:Number(el('NGrid')?.value)||0, pVal:pVals[pi], qVal:qVals[qi]});
           }
         }
       }
@@ -4125,14 +4759,14 @@ function exportRibbonSVG(){
         for(let N=nMax; N>=nMin; N--){
           const svgElem = el(`nsvg-${N}`);
           if(!svgElem) continue;
-          drawNRibbon(svgElem, nSweep[N - nMin], nTauVals);
+          drawNRibbon(svgElem, nSweep[N - nMin], nTauVals, {phaseBundle:getStaticTauPartitionBundle(N, Number(el('pN')?.value)||0.5, Number(el('qN')?.value)||0.7), nVal:N, pVal:Number(el('pN')?.value)||0.5, qVal:Number(el('qN')?.value)||0.7, scopePrefix:`n-${N}`});
         }
         drawSuccessPlot();
       }
       if(qSweep && qTauVals.length){
         for(let qi=0; qi<qRangeVals.length; qi++){
           const svgElem = el(`qsvg-${qi}`);
-          if(svgElem) drawNRibbon(svgElem, qSweep[qi], qTauVals);
+          if(svgElem) drawNRibbon(svgElem, qSweep[qi], qTauVals, {phaseBundle:getStaticTauPartitionBundle(Number(el('NQ')?.value)||0, Number(el('pQ')?.value)||0.5, qRangeVals[qi]), nVal:Number(el('NQ')?.value)||0, pVal:Number(el('pQ')?.value)||0.5, qVal:qRangeVals[qi], scopePrefix:`q-${qi}`});
         }
         drawSuccessPlotQ();
       }
