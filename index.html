@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 
 <!--
-  CascadesModel0_26
+  CascadesModel0_33
   Change log
   - 0_0: Renamed app to CascadesModel0_0.
   - 0_0: Added a global stack-order toggle so stacked τ figures can be grouped by cascade status or by correctness.
@@ -49,12 +49,19 @@
   - 0_24: Removed the remaining helper-note text blocks and duplicate in-panel captions, and compressed Tab 0 further so its parameters stay in a tighter single-row layout.
   - 0_25: Removed the leftover command-bar helper text logic and finalized the stripped-down caption-free panel layout.
   - 0_26: Cleaned and simplified hover text, standardized tooltip terminology around predicted versus empirical values, added a micro cascade-pressure readout linking within-community buildup to the larger τ phases, and streamlined τ-hover tooltips so they focus on the hovered τ rather than repeating phase summaries.
+  - 0_27: Strengthened the Basic Walkthrough color palette for clearer contrast against the background and added public-only P(vote A) micro-line graphs beneath each community row.
+  - 0_28: Flattened the Basic Walkthrough row styling to reduce visual clutter, aligned each public-only P(vote A) graph point directly beneath its agent, and moved cascade markers into the graph with correctness-colored post-cascade segments.
+  - 0_29: Reassigned the walkthrough A/B palette to ochre and graphite so it no longer echoes the four outcome colors, added structured hover math tooltips for individual agents, and layered public-vote overlays over stronger private-signal centers with hover-based reveal.
+  - 0_30: Shifted the walkthrough B palette from graphite to umber, redesigned the Tab 0 batch summaries into per-τ side panels aligned row-by-row with the communities, and reduced background/shade variation so the walkthrough reads more cleanly.
+  - 0_31: Swapped the Tab 0 walkthrough A/B palette to fuchsia and lime green, updating the agent fills, public-vote borders, hover-reveal states, tooltip badges, and snapshot export colors to match.
+  - 0_32: Replaced the Tab 0 lime-green walkthrough B palette with a more yellow chartreuse across agent fills, public-vote borders, hover-reveal states, tooltip badges, and snapshot export colors.
+  - 0_33: Added a pulsing hover state for the inner private-signal square with a thin colored outline, and redesigned the walkthrough agent tooltip into a clearer three-column public/private/final summary card.
 -->
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>CascadesModel0_26</title>
+<title>CascadesModel0_33</title>
 <style>
     :root{
       --bg:#f6f8fc; --panel:#ffffff; --muted:#64748b; --text:#0f172a;
@@ -68,6 +75,11 @@
       --phase-shift:#d97706; --phase-shift-soft:rgba(245,158,11,.16); --phase-shift-stroke:rgba(217,119,6,.82);
       --phase-best-pred-fill:rgba(245,158,11,.16); --phase-best-pred-stroke:rgba(217,119,6,.84);
       --phase-best-sim-fill:rgba(59,130,246,.15); --phase-best-sim-stroke:rgba(37,99,235,.84);
+      --walk-a:#d946ef; --walk-a-strong:#c026d3; --walk-a-soft:rgba(217,70,239,.78); --walk-a-overlay:rgba(217,70,239,.24);
+      --walk-b:#d4ff00; --walk-b-strong:#96b800; --walk-b-soft:rgba(212,255,0,.82); --walk-b-overlay:rgba(212,255,0,.26);
+      --walk-graph-line:#0f172a; --walk-graph-mid:#64748b;
+      --walk-cascade-correct:#10b981; --walk-cascade-incorrect:#ef4444;
+      --walk-panel-flat:#ffffff; --walk-subpanel-flat:#f8fafc;
     }
     *{box-sizing:border-box}
     body{
@@ -155,29 +167,69 @@
 
     .grid{display:grid;grid-template-columns:1fr 420px;gap:14px}
 
-    .community{margin-bottom:12px}
+    .community{
+      margin-bottom:12px;
+      padding:10px;
+      border:1px solid rgba(148,163,184,.42);
+      border-radius:14px;
+      background:#fff;
+      box-shadow:none;
+    }
     .community h3{
       margin:0 0 8px;
       font-size:.95rem;
       color:var(--ink-2);
-      font-weight:700;
+      font-weight:800;
       display:flex;
       justify-content:space-between;
       align-items:center
+    }
+    .walkthrough-board{display:flex;flex-direction:column;gap:10px}
+    .walkthrough-board-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+    .walkthrough-board-title{font-weight:800;color:var(--ink-2)}
+    #walkthroughPairs{display:flex;flex-direction:column;gap:12px}
+    .walkthrough-pair{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(280px,.95fr);gap:12px;align-items:stretch}
+    .walkthrough-batch{border:1px solid rgba(148,163,184,.34);border-radius:14px;background:#fff;padding:10px 12px;display:flex;flex-direction:column;justify-content:center}
+    .walkthrough-batch-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px}
+    .walkthrough-batch-title{font-size:.92rem;font-weight:800;color:var(--ink-2)}
+    .walkthrough-batch-note{font-size:.76rem;color:var(--ink-4);line-height:1.35}
+    .walkthrough-batch-body{display:grid;grid-template-columns:70px 1fr;gap:12px;align-items:center}
+    .walkthrough-batch-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px 12px;font-size:.82rem;color:var(--ink-3)}
+    .batch-stat{display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid rgba(241,245,249,.9);padding-bottom:4px}
+    .batch-label{display:inline-flex;align-items:center;gap:6px;min-width:0}
+    .batch-label .dot{flex:0 0 auto}
+    .batch-stat b,.batch-total b{color:var(--ink-2)}
+    .batch-total{grid-column:1 / -1;display:flex;justify-content:flex-end;align-items:center;gap:8px;padding-top:2px;font-size:.8rem;color:var(--ink-4)}
+    .walkthrough-batch-legend{display:none}
+    .community-scroll{
+      overflow-x:auto;
+      overflow-y:visible;
+      padding-bottom:2px;
+    }
+    .community-track{
+      display:block;
+      width:max-content;
+      min-width:100%;
     }
     .miniStats{
       font-size:.8rem;
       color:var(--ink-3);
       display:flex;
-      gap:10px
+      gap:10px;
+      margin-top:7px
     }
     .timeline{
       position:relative;
       display:flex;
-      flex-wrap:wrap;
+      flex-wrap:nowrap;
       gap:6px;
       padding:10px;
-      min-height:76px
+      min-height:56px;
+      border:1px solid rgba(148,163,184,.35);
+      border-radius:12px;
+      background:#fff;
+      width:max-content;
+      min-width:100%;
     }
 
     .agent{
@@ -186,27 +238,80 @@
       border-radius:9px;
       display:grid;
       place-items:center;
-      font-weight:700;
-      border:1px solid var(--ring);
+      font-weight:800;
+      border:1px solid rgba(100,116,139,.42);
       color:var(--ink-2);
       background:#fff;
-      box-shadow:inset 0 0 0 3px #ffffff
+      box-shadow:none;
+      flex:0 0 auto;
+      overflow:hidden;
+      isolation:isolate;
+      transition:border-color .14s ease, box-shadow .14s ease;
     }
-    .agent.signalA{background:linear-gradient(180deg, rgba(34,211,238,.22), rgba(34,211,238,.08))}
-    .agent.signalB{background:linear-gradient(180deg, rgba(248,113,113,.22), rgba(248,113,113,.08))}
-    .agent.A{border-width:3px;border-color:rgba(34,211,238,.9)}
-    .agent.B{border-width:3px;border-color:rgba(248,113,113,.9)}
-
-    .cascade-flag{
-      position:absolute;
-      top:-8px;
-      transform:translateY(-100%);
-      font-size:.75rem;
+    .agent::before, .agent::after{content:""; position:absolute; border-radius:inherit; transition:opacity .14s ease, inset .14s ease, background .14s ease, box-shadow .14s ease, transform .14s ease;}
+    .agent::before{inset:6px; opacity:0; z-index:0; transform:scale(1); box-shadow:0 0 0 0 transparent;}
+    .agent::after{inset:0; opacity:0; z-index:1;}
+    .agent.signalA{--walk-inner-border:rgba(192,38,211,.78);}
+    .agent.signalB{--walk-inner-border:rgba(150,184,0,.84);}
+    .agent.signalA::before{opacity:1; background:var(--walk-a-soft);}
+    .agent.signalB::before{opacity:1; background:var(--walk-b-soft);}
+    .agent.A::after{opacity:1; background:var(--walk-a-overlay);}
+    .agent.B::after{opacity:1; background:var(--walk-b-overlay);}
+    .agent.A{border-width:3px;border-color:var(--walk-a-strong);box-shadow:inset 0 0 0 1px rgba(255,255,255,.92)}
+    .agent.B{border-width:3px;border-color:var(--walk-b-strong);box-shadow:inset 0 0 0 1px rgba(255,255,255,.92)}
+    .agent:hover::after{opacity:.06;}
+    .agent:hover::before{box-shadow:0 0 0 1px var(--walk-inner-border); animation:walkInnerPulse 1s ease-in-out infinite;}
+    .agent.A:hover{border-color:rgba(192,38,211,.46)}
+    .agent.B:hover{border-color:rgba(150,184,0,.52)}
+    .agent-label{position:relative; z-index:2;}
+    @keyframes walkInnerPulse{
+      0%,100%{transform:scale(1); filter:saturate(1) brightness(1);}
+      50%{transform:scale(1.09); filter:saturate(1.1) brightness(1.04);}
+    }
+    .public-pressure-graph{
+      display:block;
+      width:100%;
+      height:52px;
+      margin-top:6px;
+      border:1px solid rgba(148,163,184,.35);
+      border-radius:10px;
       background:#fff;
-      border:1px solid var(--amber);
-      color:#92400e;
-      padding:4px 8px;
-      border-radius:999px
+      overflow:visible;
+    }
+
+    .walk-agent-tip{
+      position:fixed;
+      pointer-events:none;
+      display:none;
+      width:min(720px, calc(100vw - 28px));
+      background:#ffffff;
+      border:1px solid var(--ring);
+      border-radius:14px;
+      padding:12px;
+      font-size:.8rem;
+      color:var(--ink-2);
+      box-shadow:0 14px 34px rgba(15,23,42,.16);
+      z-index:10000;
+    }
+    .walk-tip-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px}
+    .walk-tip-title{font-size:.88rem;font-weight:800;color:var(--ink-2)}
+    .walk-tip-badge{display:inline-flex;align-items:center;border:1px solid var(--ring);border-radius:999px;padding:2px 7px;font-size:.67rem;font-weight:800;letter-spacing:.02em;text-transform:uppercase;background:#fff}
+    .walk-tip-badge.signalA{border-color:rgba(192,38,211,.24); color:var(--walk-a-strong); background:rgba(217,70,239,.10)}
+    .walk-tip-badge.signalB{border-color:rgba(150,184,0,.28); color:var(--walk-b-strong); background:rgba(212,255,0,.14)}
+    .walk-tip-badges{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+    .walk-tip-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+    .walk-tip-col{border:1px solid rgba(203,213,225,.78);border-radius:12px;background:#fbfdff;padding:10px;display:flex;flex-direction:column;gap:7px;min-width:0}
+    .walk-tip-col.public{background:linear-gradient(180deg, rgba(241,245,249,.92), rgba(255,255,255,1));}
+    .walk-tip-col.private{background:linear-gradient(180deg, rgba(250,245,255,.92), rgba(255,255,255,1));}
+    .walk-tip-col.final{background:linear-gradient(180deg, rgba(248,250,252,.94), rgba(255,255,255,1));}
+    .walk-tip-col-title{font-size:.72rem;font-weight:800;letter-spacing:.055em;text-transform:uppercase;color:#64748b}
+    .walk-tip-col-copy{font-size:.76rem;line-height:1.35;color:#475569}
+    .walk-tip-eq{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;font-size:.75rem;color:var(--ink-2);background:#fff;border:1px solid var(--soft-2);border-radius:8px;padding:7px;line-height:1.35;white-space:normal}
+    .walk-tip-metrics{display:flex;flex-direction:column;gap:3px}
+    .walk-tip-emph{margin-top:auto;border-top:1px solid rgba(203,213,225,.72);padding-top:7px;font-size:.79rem;font-weight:800;color:var(--ink-2)}
+    .walk-tip-note{font-size:.76rem;line-height:1.35;color:#475569}
+    @media (max-width: 760px){
+      .walk-tip-grid{grid-template-columns:1fr}
     }
 
     .legendRow{
@@ -451,6 +556,13 @@
     .phase-outcome-value{font-weight:600;color:var(--ink-2)}
     .phase-rect-wrap{display:flex;justify-content:center;align-items:flex-start;padding-top:4px}
 
+    @media (max-width: 1100px){
+      .walkthrough-pair{grid-template-columns:1fr}
+      .walkthrough-batch-body{grid-template-columns:60px 1fr}
+    }
+    @media (max-width: 700px){
+      .walkthrough-batch-grid{grid-template-columns:1fr}
+    }
     @media (max-width: 1200px){
       .tau-phase-row{grid-template-columns:1fr}
       .phase-profile-body{grid-template-columns:76px 1fr}
@@ -497,7 +609,7 @@
 <body>
 <div class="page-shell">
 <header>
-<h1>CascadesModel0_26</h1>
+<h1>CascadesModel0_33</h1>
 </header><div id="commandBarParking" style="display:none"><div class="page-command-bar card" id="globalCommandBar">
 <div class="command-bar-grid">
 <div class="command-group">
@@ -560,10 +672,10 @@
 <button id="btn-clearall">Reset All</button>
 </div>
 <div class="legendRow" style="margin-top:12px">
-<span class="chip"><span class="dot" style="background:rgba(34,211,238,.85);"></span> Private evidence: A</span>
-<span class="chip"><span class="dot" style="background:rgba(248,113,113,.85);"></span> Private evidence: B</span>
-<span class="chip"><span class="dot" style="background:transparent;border:2px solid rgba(34,211,238,.9);"></span> Public vote: A</span>
-<span class="chip"><span class="dot" style="background:transparent;border:2px solid rgba(248,113,113,.9);"></span> Public vote: B</span>
+<span class="chip"><span class="dot" style="background:var(--walk-a-soft)"></span> Private evidence: A</span>
+<span class="chip"><span class="dot" style="background:var(--walk-b-soft)"></span> Private evidence: B</span>
+<span class="chip"><span class="dot" style="background:transparent;border:2px solid var(--walk-a-strong);"></span> Public vote: A</span>
+<span class="chip"><span class="dot" style="background:transparent;border:2px solid var(--walk-b-strong);"></span> Public vote: B</span>
 </div>
 <div class="run-meta-strip"><span class="run-meta-item"><span class="run-meta-label">True state</span><span class="run-meta-value" id="trueState">—</span></span><span class="run-meta-item"><span class="run-meta-label">Model constants</span><span class="run-meta-value" id="runConsts">—</span></span></div>
 </div>
@@ -571,26 +683,20 @@
 </details><details class="card collapsible-panel" id="tab0CommunityPanel" open="">
 <summary><span>Single community demonstrations &amp; aggregate metrics</span></summary>
 <div class="panel-body tight">
-<div class="tab1-split">
-<div class="card nested-card" id="rowsCard">
-<div style="display:flex;justify-content:space-between;align-items:center; margin-bottom:6px">
-<div style="font-weight:700;color:var(--ink-2)">Communities (same signals, different τ; sorted high→low)</div>
+<div class="walkthrough-board">
+<div class="walkthrough-board-top">
+<div class="walkthrough-board-title">Communities (same signals, different τ; sorted high→low)</div>
 <div class="muted" id="stepInfo" style="color:var(--ink-4)">—</div>
 </div>
-<div id="rows"></div>
-<div style="margin-top:8px; display:flex; justify-content:flex-end; gap:8px">
-<button id="btn-download-rows">Download community snapshot (SVG)</button>
-</div>
-</div>
-<div class="card nested-card" id="aggPanel">
-<div style="font-weight:700; margin-bottom:6px;color:var(--ink-2)">Aggregate over runs (per τ)</div>
-<div class="legendRow stack-legend-grid" style="margin-bottom:6px">
+<div class="legendRow stack-legend-grid walkthrough-batch-legend" style="margin-bottom:8px">
 <span class="chip"><span class="dot" style="background:var(--neutral)"></span> No-cascade &amp; Incorrect</span>
 <span class="chip"><span class="dot" style="background:var(--bad)"></span> Cascade &amp; Incorrect</span>
 <span class="chip"><span class="dot" style="background:var(--accent)"></span> No-cascade &amp; Correct</span>
 <span class="chip"><span class="dot" style="background:var(--good)"></span> Cascade &amp; Correct</span>
 </div>
-<div id="aggBoxes"></div>
+<div id="walkthroughPairs"></div>
+<div style="margin-top:8px; display:flex; justify-content:flex-end; gap:8px">
+<button id="btn-download-rows">Download community snapshot (SVG)</button>
 </div>
 </div>
 </div>
@@ -827,6 +933,7 @@
 </div>
 </div>
 <div id="ribbonTip"></div>
+<div class="walk-agent-tip" id="walkAgentTip"></div>
 <script>
     // --- Utilities ---
     function mulberry32(a){
@@ -2061,6 +2168,8 @@ function redrawAllStackedFigures(){
     function resetUI(){
       const rowsEl = el('rows');
       if(rowsEl) rowsEl.innerHTML='';
+      const pairsEl = el('walkthroughPairs');
+      if(pairsEl) pairsEl.innerHTML='';
       const logEl = el('log');
       if(logEl) logEl.innerHTML='';
       const ts = el('trueState'); if (ts) ts.textContent='—';
@@ -2086,36 +2195,347 @@ function redrawAllStackedFigures(){
     }
 
     function renderRows(){
-      const container=el('rows');
+      const container=el('walkthroughPairs') || el('rows');
       if(!container) return;
       container.innerHTML='';
       communities.forEach((c,ci)=>{
+        const pair=document.createElement('div');
+        pair.className='walkthrough-pair';
+
         const wrap=document.createElement('div');
         wrap.className='community';
         const title=document.createElement('h3');
-        const cascadeText=c.cascadeIndex!==null
-          ?`<span style="color:var(--amber)">Cascade @ ${c.cascadeIndex+1}</span>`
-          :'<span class="muted" style="color:var(--ink-4)">—</span>';
-        title.innerHTML=`<span>Row ${ci+1} — τ=${c.tau.toFixed(2)}</span>${cascadeText}`;
+        title.innerHTML=`<span>Row ${ci+1} — τ=${c.tau.toFixed(2)}</span>`;
         wrap.appendChild(title);
+
+        const scroller=document.createElement('div');
+        scroller.className='community-scroll';
+        scroller.id=`scroll-${c.idx}`;
+        const track=document.createElement('div');
+        track.className='community-track';
+        track.id=`track-${c.idx}`;
+        scroller.appendChild(track);
+
         const timeline=document.createElement('div');
         timeline.className='timeline';
-        timeline.id=`timeline-${ci}`;
-        wrap.appendChild(timeline);
+        timeline.id=`timeline-${c.idx}`;
+        track.appendChild(timeline);
+
         for(let k=0;k<params.N;k++){
           const node=document.createElement('div');
           node.className='agent';
-          node.textContent=k+1;
           node.id=`c${c.idx}-agent-${k}`;
+          const label=document.createElement('span');
+          label.className='agent-label';
+          label.textContent=k+1;
+          node.appendChild(label);
+          attachWalkthroughAgentHover(node, c, k);
           timeline.appendChild(node);
         }
+
+        const pressure=document.createElementNS('http://www.w3.org/2000/svg','svg');
+        pressure.setAttribute('id',`pressure-${c.idx}`);
+        pressure.setAttribute('class','public-pressure-graph');
+        pressure.setAttribute('role','img');
+        pressure.setAttribute('aria-label',`Public-only probability of voting A for row ${ci+1}`);
+        track.appendChild(pressure);
+        wrap.appendChild(scroller);
+
         const mini=document.createElement('div');
         mini.className='miniStats';
         mini.id=`mini-${c.idx}`;
         mini.textContent='A: 0  •  B: 0  •  Final: —';
         wrap.appendChild(mini);
-        container.appendChild(wrap);
+
+        const batch=document.createElement('div');
+        batch.className='walkthrough-batch';
+        batch.innerHTML=`
+          <div class="walkthrough-batch-head">
+            <div>
+              <div class="walkthrough-batch-title">Batch results · τ=${c.tau.toFixed(2)}</div>
+              <div class="walkthrough-batch-note">Aggregate over completed runs for this same τ.</div>
+            </div>
+          </div>
+          <div class="walkthrough-batch-body">
+            <svg id="pie-${c.idx}" width="70" height="70"></svg>
+            <div class="walkthrough-batch-grid">
+              <div class="batch-stat"><span class="batch-label"><span class="dot" style="background:var(--good)"></span> Cascade &amp; Correct</span><b id="cc-${c.idx}">0</b></div>
+              <div class="batch-stat"><span class="batch-label"><span class="dot" style="background:var(--bad)"></span> Cascade &amp; Incorrect</span><b id="ci-${c.idx}">0</b></div>
+              <div class="batch-stat"><span class="batch-label"><span class="dot" style="background:var(--accent)"></span> No-cascade &amp; Correct</span><b id="ncc-${c.idx}">0</b></div>
+              <div class="batch-stat"><span class="batch-label"><span class="dot" style="background:var(--neutral)"></span> No-cascade &amp; Incorrect</span><b id="nci-${c.idx}">0</b></div>
+              <div class="batch-total">Total runs <b id="tot-${c.idx}">0</b></div>
+            </div>
+          </div>`;
+
+        pair.appendChild(wrap);
+        pair.appendChild(batch);
+        container.appendChild(pair);
+        drawPublicPressureGraph(c);
       });
+    }
+
+    function publicPosteriorAFromLogOdds(L){
+      if(L > 36) return 1;
+      if(L < -36) return 0;
+      return 1 / (1 + Math.exp(-L));
+    }
+
+    function expectedVoteAWithoutPrivateEvidence(Lprev){
+      const qVal = params?.q;
+      if(!Number.isFinite(qVal) || !Number.isFinite(lambda)) return null;
+      const postA = publicPosteriorAFromLogOdds(Lprev);
+      const pSignalA = clamp01((1 - qVal) + (2 * qVal - 1) * postA);
+      const voteAIfSignalA = (Lprev + lambda) >= -1e-12 ? 1 : 0;
+      const voteAIfSignalB = (Lprev - lambda) > 1e-12 ? 1 : 0;
+      return clamp01(pSignalA * voteAIfSignalA + (1 - pSignalA) * voteAIfSignalB);
+    }
+
+    function recordPublicVoteAProbability(c, index){
+      if(!c || !c.publicVoteAProb || !params || index < 0 || index >= params.N) return;
+      const Lprev = currentL(c);
+      c.publicVoteAProb[index] = expectedVoteAWithoutPrivateEvidence(Lprev);
+    }
+
+    function drawSvgLine(svg, x1, y1, x2, y2, attrs={}){
+      const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1',x1);
+      line.setAttribute('y1',y1);
+      line.setAttribute('x2',x2);
+      line.setAttribute('y2',y2);
+      Object.entries(attrs).forEach(([k,v])=>line.setAttribute(k,v));
+      svg.appendChild(line);
+      return line;
+    }
+
+    function drawSvgPath(svg, points, attrs={}){
+      if(!Array.isArray(points) || points.length < 2) return null;
+      const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+      path.setAttribute('d', points.map((p,i)=>`${i?'L':'M'} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' '));
+      Object.entries(attrs).forEach(([k,v])=>path.setAttribute(k,v));
+      svg.appendChild(path);
+      return path;
+    }
+
+    function getCascadeOutcomeInfo(c){
+      if(!c || c.cascadeIndex===null || c.cascadeIndex===undefined) return null;
+      const onset = Math.max(0, Math.min((params?.N || 1) - 1, c.cascadeIndex));
+      let cascadeAction = c.actions?.[onset] || null;
+      if(!cascadeAction){
+        const v = c.publicVoteAProb?.[onset];
+        if(Number.isFinite(v)) cascadeAction = v >= 0.5 ? 'A' : 'B';
+      }
+      if(!cascadeAction) return null;
+      const trueFinal = stateA ? 'A' : 'B';
+      const correct = cascadeAction === trueFinal;
+      return {
+        onset,
+        action:cascadeAction,
+        correct,
+        color: correct ? 'var(--walk-cascade-correct)' : 'var(--walk-cascade-incorrect)'
+      };
+    }
+
+    function getPressurePlotGeometry(c){
+      const timeline = el(`timeline-${c?.idx}`);
+      const agents = timeline ? Array.from(timeline.children).filter(node=>node.classList.contains('agent')) : [];
+      const timelineWidth = Math.max(timeline?.clientWidth || 0, timeline?.scrollWidth || 0, 260);
+      const H = 52;
+      const top = 8, bottom = 8;
+      const plotH = H - top - bottom;
+      const centers = agents.length
+        ? agents.map(node=>node.offsetLeft + node.offsetWidth/2)
+        : Array.from({length:(params?.N || c?.publicVoteAProb?.length || 0)}, (_,i)=>{
+            const N = params?.N || c?.publicVoteAProb?.length || 1;
+            return N<=1 ? timelineWidth/2 : (i/(N-1))*timelineWidth;
+          });
+      return {timelineWidth, H, top, bottom, plotH, centers};
+    }
+
+    function drawPublicPressureGraph(c){
+      const svg=el(`pressure-${c?.idx}`);
+      if(!svg || !params) return;
+      while(svg.firstChild) svg.removeChild(svg.firstChild);
+
+      const {timelineWidth:W, H, top, bottom, plotH, centers} = getPressurePlotGeometry(c);
+      svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+      svg.setAttribute('preserveAspectRatio','none');
+      svg.style.width = `${W}px`;
+
+      const title=document.createElementNS('http://www.w3.org/2000/svg','title');
+      title.textContent="Public-only P(vote A): expected probability of an A vote from previous public votes before this agent's private evidence is observed.";
+      svg.appendChild(title);
+
+      drawSvgLine(svg, 0, top + plotH/2, W, top + plotH/2, {'stroke':'rgba(100,116,139,.70)','stroke-width':'1','stroke-dasharray':'3 4','vector-effect':'non-scaling-stroke'});
+      ['1','.5','0'].forEach((txt,idx)=>{
+        const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+        t.setAttribute('x',6);
+        t.setAttribute('y',idx===0 ? top+3 : idx===1 ? top+plotH/2+3 : H-bottom+1);
+        t.setAttribute('font-size','7');
+        t.setAttribute('fill','rgba(51,65,85,.78)');
+        t.textContent=txt;
+        svg.appendChild(t);
+      });
+
+      const vals = (c.publicVoteAProb || []).map(v=>Number.isFinite(v) ? clamp01(v) : null);
+      const pts = vals.map((v,i)=>{
+        if(v===null) return null;
+        const x = Number.isFinite(centers[i]) ? centers[i] : (centers.length ? centers[centers.length-1] : 0);
+        const y = top + (1-v)*plotH;
+        return {x,y,v,i};
+      }).filter(Boolean);
+      if(!pts.length) return;
+
+      const cascadeInfo = getCascadeOutcomeInfo(c);
+      if(cascadeInfo && cascadeInfo.onset < pts.length){
+        const onset = cascadeInfo.onset;
+        const prePts = pts.slice(0, onset + 1);
+        const postPts = pts.slice(onset);
+        if(prePts.length > 1){
+          drawSvgPath(svg, prePts, {
+            fill:'none', stroke:'var(--walk-graph-line)', 'stroke-width':'2.1',
+            'stroke-linecap':'round', 'stroke-linejoin':'round', 'vector-effect':'non-scaling-stroke'
+          });
+        }
+        if(postPts.length > 1){
+          drawSvgPath(svg, postPts, {
+            fill:'none', stroke:cascadeInfo.color, 'stroke-width':'2.6',
+            'stroke-linecap':'round', 'stroke-linejoin':'round', 'vector-effect':'non-scaling-stroke'
+          });
+        }
+        const markerX = pts[onset].x;
+        drawSvgLine(svg, markerX, top, markerX, H-bottom, {
+          stroke:cascadeInfo.color, 'stroke-width':'1.1', 'stroke-dasharray':'3 2', opacity:'0.85', 'vector-effect':'non-scaling-stroke'
+        });
+
+        const label = `Cascade @ ${onset+1}`;
+        const labelW = Math.max(56, label.length * 5.8 + 12);
+        const labelH = 16;
+        const labelX = Math.max(4, Math.min(W - labelW - 4, markerX - labelW/2));
+        const labelY = 2;
+        const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
+        rect.setAttribute('x',labelX);
+        rect.setAttribute('y',labelY);
+        rect.setAttribute('width',labelW);
+        rect.setAttribute('height',labelH);
+        rect.setAttribute('rx','8');
+        rect.setAttribute('fill','#ffffff');
+        rect.setAttribute('stroke',cascadeInfo.color);
+        rect.setAttribute('stroke-width','1');
+        svg.appendChild(rect);
+        const txt=document.createElementNS('http://www.w3.org/2000/svg','text');
+        txt.setAttribute('x',labelX + labelW/2);
+        txt.setAttribute('y',labelY + 11);
+        txt.setAttribute('text-anchor','middle');
+        txt.setAttribute('font-size','8');
+        txt.setAttribute('font-weight','700');
+        txt.setAttribute('fill',cascadeInfo.color);
+        txt.textContent=label;
+        svg.appendChild(txt);
+      } else if(pts.length > 1){
+        drawSvgPath(svg, pts, {
+          fill:'none', stroke:'var(--walk-graph-line)', 'stroke-width':'2.1',
+          'stroke-linecap':'round', 'stroke-linejoin':'round', 'vector-effect':'non-scaling-stroke'
+        });
+      }
+
+      pts.forEach((p)=>{
+        const inCascade = !!cascadeInfo && p.i >= cascadeInfo.onset;
+        const dot=document.createElementNS('http://www.w3.org/2000/svg','circle');
+        dot.setAttribute('cx',p.x);
+        dot.setAttribute('cy',p.y);
+        dot.setAttribute('r',inCascade ? 2.35 : 1.85);
+        dot.setAttribute('fill',inCascade ? cascadeInfo.color : 'var(--walk-graph-line)');
+        dot.setAttribute('stroke','#ffffff');
+        dot.setAttribute('stroke-width','1');
+        dot.setAttribute('vector-effect','non-scaling-stroke');
+        svg.appendChild(dot);
+      });
+    }
+
+    function walkSignalLabel(signalA){ return signalA ? 'A' : 'B'; }
+
+    function buildWalkMetricRow(label, value){
+      return `<div class="tooltip-stack-row"><span class="tooltip-stack-label">${label}</span><span><b>${value}</b></span></div>`;
+    }
+
+    function buildWalkTipColumn(kind, title, copy, metricsHTML, eqHTML, emphHTML){
+      return `<div class="walk-tip-col ${kind}"><div class="walk-tip-col-title">${title}</div><div class="walk-tip-col-copy">${copy}</div><div class="walk-tip-metrics">${metricsHTML}</div><div class="walk-tip-eq">${eqHTML}</div><div class="walk-tip-emph">${emphHTML}</div></div>`;
+    }
+
+    function buildWalkthroughAgentTooltip(c, index){
+      const step = c?.stepMath?.[index];
+      const signalA = signals?.[index];
+      const signalClass = signalA ? 'signalA' : 'signalB';
+      const signalLabel = walkSignalLabel(!!signalA);
+      if(!step){
+        return `<div class="walk-tip-head"><div><div class="walk-tip-title">Agent ${index+1} · τ=${c.tau.toFixed(2)}</div><div class="walk-tip-note">This agent has not voted yet, so the public/private/final decomposition is not available on the board.</div></div></div>`;
+      }
+      const publicDir = step.Lprev > 1e-12 ? 'toward A' : step.Lprev < -1e-12 ? 'toward B' : 'perfectly balanced';
+      const privateDir = step.signalA ? 'toward A' : 'toward B';
+      const finalDir = step.action === 'A' ? 'A' : 'B';
+      const voteBadge = `<span class="walk-tip-badge ${step.action==='A' ? 'signalA' : 'signalB'}">vote ${step.action}</span>`;
+
+      const publicMetrics = [
+        buildWalkMetricRow('<span class="math-inline">k = r<sub>A</sub> − r<sub>B</sub></span>', String(step.kNow)),
+        buildWalkMetricRow('<span class="math-inline">τ·k</span>', step.socialPullSigned.toFixed(3)),
+        buildWalkMetricRow('<span class="math-inline">P(vote A | public only)</span>', step.publicVoteAProb.toFixed(3)),
+        buildWalkMetricRow('<span class="math-inline">χ = |L<sub>public</sub>| / λ</span>', `${step.cascadePressure.toFixed(3)} (${formatWalkthroughBuildupStatus(step.cascadePressure)})`)
+      ].join('');
+      const publicEq = `L<sub>public</sub> = L<sub>0</sub> + τ·k·λ = ${step.Lprior.toFixed(3)} + (${step.tau.toFixed(2)}·${step.kNow}·${step.lambda.toFixed(3)}) = <b>${step.Lprev.toFixed(3)}</b>`;
+      const publicEmph = `Public impact: <b>${publicDir}</b>`;
+
+      const privateMetrics = [
+        buildWalkMetricRow('<span class="math-inline">signal</span>', signalLabel),
+        buildWalkMetricRow('<span class="math-inline">λ</span>', step.lambda.toFixed(3)),
+        buildWalkMetricRow('<span class="math-inline">private shift</span>', `${step.signalA ? '+' : '−'}${step.lambda.toFixed(3)}`)
+      ].join('');
+      const privateEq = `private evidence = ${step.signalA ? '+' : '−'}λ = ${step.signalA ? '+' : '−'}${step.lambda.toFixed(3)}`;
+      const privateEmph = `Private evidence: <b>${privateDir}</b>`;
+
+      const finalMetrics = [
+        buildWalkMetricRow('<span class="math-inline">L<sub>public</sub></span>', step.Lprev.toFixed(3)),
+        buildWalkMetricRow('<span class="math-inline">L<sub>final</sub></span>', step.Lwith.toFixed(3)),
+        buildWalkMetricRow('cascade status', step.cascadeBefore ? 'already in cascade' : 'not yet in cascade'),
+        buildWalkMetricRow('final vote', step.action)
+      ].join('');
+      const finalEq = `L<sub>final</sub> = L<sub>public</sub> ${step.signalA ? '+' : '−'} λ = ${step.Lprev.toFixed(3)} ${step.signalA ? '+' : '−'} ${step.lambda.toFixed(3)} = <b>${step.Lwith.toFixed(3)}</b>`;
+      const finalEmph = `Final result: votes <b>${finalDir}</b>${step.cascadeBefore ? ' in cascade' : ''}`;
+
+      return [
+        `<div class="walk-tip-head"><div><div class="walk-tip-title">Agent ${index+1} · τ=${c.tau.toFixed(2)}</div><div class="walk-tip-note">Left: what the publicly revealed votes are doing. Middle: what this agent’s private signal adds. Right: how those combine into the actual vote.</div></div><div class="walk-tip-badges"><span class="walk-tip-badge ${signalClass}">private ${signalLabel}</span>${voteBadge}</div></div>`,
+        `<div class="walk-tip-grid">`,
+        buildWalkTipColumn('public', 'Public impact', 'What the previous public votes contribute before this agent looks at its own signal.', publicMetrics, publicEq, publicEmph),
+        buildWalkTipColumn('private', 'Private evidence', 'The new information this agent receives from its own signal.', privateMetrics, privateEq, privateEmph),
+        buildWalkTipColumn('final', 'Final vote', 'How the public and private pieces combine into the vote this agent actually casts.', finalMetrics, finalEq, finalEmph),
+        `</div>`
+      ].join('');
+    }
+
+    function showWalkthroughAgentTip(evt, c, index){
+      const tip = el('walkAgentTip');
+      if(!tip) return;
+      tip.innerHTML = buildWalkthroughAgentTooltip(c, index);
+      tip.style.display = 'block';
+      const pad = 14;
+      const rect = tip.getBoundingClientRect();
+      let x = evt.clientX + 14;
+      let y = evt.clientY + 14;
+      if(x + rect.width > window.innerWidth - pad) x = evt.clientX - rect.width - 14;
+      if(y + rect.height > window.innerHeight - pad) y = evt.clientY - rect.height - 14;
+      tip.style.left = `${Math.max(pad, x)}px`;
+      tip.style.top = `${Math.max(pad, y)}px`;
+    }
+
+    function hideWalkthroughAgentTip(){
+      const tip = el('walkAgentTip');
+      if(tip) tip.style.display = 'none';
+    }
+
+    function attachWalkthroughAgentHover(node, c, index){
+      if(!node) return;
+      node.addEventListener('mousemove', evt=>showWalkthroughAgentTip(evt, c, index));
+      node.addEventListener('mouseenter', evt=>showWalkthroughAgentTip(evt, c, index));
+      node.addEventListener('mouseleave', hideWalkthroughAgentTip);
     }
 
     function updateMini(c){
@@ -2126,30 +2546,7 @@ function redrawAllStackedFigures(){
     }
 
     function makeAggBoxes(){
-      const host=el('aggBoxes');
-      if(!host) return;
-      host.innerHTML='';
-      communities.forEach(c=>{
-        const box=document.createElement('div');
-        box.className='aggBox';
-        box.id=`agg-${c.idx}`;
-        const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
-        svg.setAttribute('id',`pie-${c.idx}`);
-        svg.setAttribute('width','70');
-        svg.setAttribute('height','70');
-        const meta=document.createElement('div');
-        meta.innerHTML=`<h4>τ=${c.tau.toFixed(2)}</h4>
-          <div style="display:grid;grid-template-columns: repeat(2,1fr);gap:6px;margin-top:6px;font-size:.85rem;color:var(--ink-3)">
-            <div>Cascade &amp; Correct: <b id="cc-${c.idx}">0</b></div>
-            <div>Cascade &amp; Incorrect: <b id="ci-${c.idx}">0</b></div>
-            <div>No-cascade &amp; Correct: <b id="ncc-${c.idx}">0</b></div>
-            <div>No-cascade &amp; Incorrect: <b id="nci-${c.idx}">0</b></div>
-            <div>Total: <b id="tot-${c.idx}">0</b></div>
-          </div>`;
-        box.appendChild(svg);
-        box.appendChild(meta);
-        host.appendChild(box);
-      });
+      // Integrated into renderRows() as aligned per-τ batch panels on Tab 0.
     }
 
     function drawPie4(svgId, counts){
@@ -2227,12 +2624,6 @@ function redrawAllStackedFigures(){
     function markCascadeAt(c,i){
       if(c.cascadeIndex!==null) return;
       c.cascadeIndex=i;
-      const flag=document.createElement('div');
-      flag.className='cascade-flag';
-      flag.textContent=`Cascade @ ${i+1}`;
-      const node=el(`c${c.idx}-agent-${i}`);
-      node.style.position='relative';
-      node.appendChild(flag);
     }
 
     function stepOnce(){
@@ -2242,6 +2633,7 @@ function redrawAllStackedFigures(){
         const node=el(`c${c.idx}-agent-${i}`);
         const sA=signals[i];
         const Lprev=currentL(c);
+        recordPublicVoteAProbability(c, i);
         const cascadeBefore=Math.abs(Lprev)>lambda+1e-12;
         if(cascadeBefore) markCascadeAt(c,i);
         const Lwith=Lprev + (sA? +lambda : -lambda);
@@ -2252,21 +2644,30 @@ function redrawAllStackedFigures(){
         node.classList.add(action);
         const kNow = (c.revealedA-c.revealedB);
         const socialPull = Math.abs(c.tau * kNow);
+        const socialPullSigned = c.tau * kNow;
         const cascadePressure = lambda > 0 ? Math.abs(Lprev) / lambda : 0;
-        node.title = [
-          `τ=${c.tau.toFixed(2)}`,
-          `k=r_A−r_B=${kNow}`,
-          `social pull=τ·|k|=${socialPull.toFixed(3)} private-signal units`,
-          `cascade pressure χ=|L_prev|/λ=${cascadePressure.toFixed(3)} (${formatWalkthroughBuildupStatus(cascadePressure)})`,
-          `L_prev=L₀+τ·k·λ=${Lprev.toFixed(3)}`,
-          `signal=${sA?'A':'B'} (±λ=${(sA?'+':'−')}${lambda.toFixed(3)})`,
-          `L_with=${Lwith.toFixed(3)}`,
-          `vote=${action}${cascadeBefore?' (cascade)':''}`
-        ].join('\n');
+        c.stepMath[i] = {
+          tau:c.tau,
+          kNow,
+          socialPull,
+          socialPullSigned,
+          cascadePressure,
+          Lprior,
+          Lprev,
+          Lwith,
+          lambda,
+          signalA:!!sA,
+          action,
+          cascadeBefore,
+          publicVoteAProb: Number.isFinite(c.publicVoteAProb?.[i]) ? c.publicVoteAProb[i] : expectedVoteAWithoutPrivateEvidence(Lprev)
+        };
+        node.removeAttribute('title');
         if(!cascadeBefore){
           if(sA) c.revealedA++;
           else c.revealedB++;
         }
+        recordPublicVoteAProbability(c, i+1);
+        drawPublicPressureGraph(c);
         log([
           `row τ=${c.tau.toFixed(2)}`,
           `i=${i+1}`,
@@ -2331,6 +2732,8 @@ function redrawAllStackedFigures(){
         idx,
         tau,
         actions:Array(params.N).fill(null),
+        publicVoteAProb:Array(params.N).fill(null),
+        stepMath:Array(params.N).fill(null),
         revealedA:0,
         revealedB:0,
         cascadeIndex:null,
@@ -2339,6 +2742,7 @@ function redrawAllStackedFigures(){
           : {cc:0,ci:0,ncc:0,nci:0,total:0}
       }));
       stepIndex=0;
+      communities.forEach(c=>recordPublicVoteAProbability(c,0));
       resetUI();
       resetTauHighlights();
       const ts = el('trueState'); if(ts) ts.textContent=stateA?'A':'B';
@@ -2944,36 +3348,82 @@ function exportRibbonSVG(){
       const rows = communities.length;
       const N = params.N;
       if(!rows || !N){ alert('No communities to export.'); return; }
-      const tileW = 22, tileH = 22, hGap = 6, vGap = 16;
+      const tileW = 22, tileH = 22, hGap = 6, graphH = 34, graphGap = 7, vGap = 18;
       const marginLeft = 80, marginTop = 30, marginRight = 20, marginBottom = 30;
       const width = marginLeft + N*(tileW + hGap) - hGap + marginRight;
-      const height = marginTop + rows*(tileH + vGap) - vGap + marginBottom;
+      const rowStep = tileH + graphGap + graphH + vGap;
+      const height = marginTop + rows*rowStep - vGap + marginBottom;
       const sb = [];
       sb.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`);
       sb.push('<style> text{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif} </style>');
       sb.push(`<rect x="0" y="0" width="${width}" height="${height}" fill="#ffffff"/>`);
-      sb.push(`<text x="${marginLeft}" y="20" font-size="12" fill="#0f172a">Private evidence (fill), public vote (border)</text>`);
+      sb.push(`<text x="${marginLeft}" y="20" font-size="12" fill="#0f172a">Private evidence (fill), public vote (border), and public-only P(vote A) line with cascade marker</text>`);
       communities.forEach((c,rowIdx)=>{
-        const y = marginTop + rowIdx*(tileH + vGap);
+        const y = marginTop + rowIdx*rowStep;
         sb.push(`<text x="10" y="${y + tileH*0.7}" font-size="11" fill="#0f172a">τ=${c.tau.toFixed(2)}</text>`);
-        if(c.cascadeIndex !== null){
-          const cx = marginLeft + c.cascadeIndex*(tileW + hGap) + tileW/2;
-          sb.push(`<text x="${cx}" y="${y - 6}" font-size="9" text-anchor="middle" fill="#92400e">cascade</text>`);
-        }
         for(let i=0;i<N;i++){
           const x = marginLeft + i*(tileW + hGap);
           const sA = signals[i];
           const action = c.actions[i];
           let fill = '#ffffff';
           if(typeof sA === 'boolean'){
-            fill = sA ? '#e0f2fe' : '#fee2e2';
+            fill = sA ? 'rgba(217,70,239,.20)' : 'rgba(212,255,0,.22)';
           }
           let stroke = '#cbd5e1';
-          if(action === 'A') stroke = '#22d3ee';
-          else if(action === 'B') stroke = '#f87171';
+          if(action === 'A') stroke = '#c026d3';
+          else if(action === 'B') stroke = '#96b800';
           const strokeWidth = action ? 2.4 : 1;
           sb.push(`<rect x="${x}" y="${y}" width="${tileW}" height="${tileH}" rx="5" ry="5" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}"/>`);
         }
+        const graphY = y + tileH + graphGap;
+        const graphX = marginLeft;
+        const graphW = N*(tileW + hGap) - hGap;
+        const graphTop = graphY + 4;
+        const graphBottom = graphY + graphH - 4;
+        sb.push(`<rect x="${graphX}" y="${graphY}" width="${graphW}" height="${graphH}" rx="6" ry="6" fill="#ffffff" stroke="#cbd5e1"/>`);
+        sb.push(`<line x1="${graphX}" y1="${graphY + graphH/2}" x2="${graphX + graphW}" y2="${graphY + graphH/2}" stroke="#64748b" stroke-dasharray="3 4" stroke-width="1"/>`);
+        sb.push(`<text x="${graphX + 3}" y="${graphTop + 2}" font-size="7" fill="rgba(51,65,85,.78)">1</text>`);
+        sb.push(`<text x="${graphX + 3}" y="${graphY + graphH/2 + 3}" font-size="7" fill="rgba(51,65,85,.78)">.5</text>`);
+        sb.push(`<text x="${graphX + 3}" y="${graphBottom + 2}" font-size="7" fill="rgba(51,65,85,.78)">0</text>`);
+        const vals = (c.publicVoteAProb || []).map(v=>Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : null);
+        const pts = vals.map((v,i)=>{
+          if(v===null) return null;
+          const x = marginLeft + i*(tileW + hGap) + tileW/2;
+          const yy = graphTop + (1-v)*(graphBottom-graphTop);
+          return {x, y:yy, v, i};
+        }).filter(Boolean);
+        const cascadeInfo = getCascadeOutcomeInfo(c);
+        if(cascadeInfo && cascadeInfo.onset < pts.length){
+          const onset = cascadeInfo.onset;
+          const prePts = pts.slice(0, onset + 1);
+          const postPts = pts.slice(onset);
+          if(prePts.length > 1){
+            const path = prePts.map((p,i)=>`${i?'L':'M'} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' ');
+            sb.push(`<path d="${path}" fill="none" stroke="#0f172a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`);
+          }
+          if(postPts.length > 1){
+            const path = postPts.map((p,i)=>`${i?'L':'M'} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' ');
+            sb.push(`<path d="${path}" fill="none" stroke="${cascadeInfo.correct ? '#10b981' : '#ef4444'}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>`);
+          }
+          const mx = pts[onset].x;
+          const mColor = cascadeInfo.correct ? '#10b981' : '#ef4444';
+          sb.push(`<line x1="${mx}" y1="${graphTop}" x2="${mx}" y2="${graphBottom}" stroke="${mColor}" stroke-dasharray="3 2" stroke-width="1"/>`);
+          const label = `Cascade @ ${onset+1}`;
+          const labelW = Math.max(56, label.length * 5.8 + 12);
+          const labelH = 16;
+          const labelX = Math.max(graphX + 4, Math.min(graphX + graphW - labelW - 4, mx - labelW/2));
+          const labelY = graphY + 2;
+          sb.push(`<rect x="${labelX}" y="${labelY}" width="${labelW}" height="${labelH}" rx="8" ry="8" fill="#ffffff" stroke="${mColor}" stroke-width="1"/>`);
+          sb.push(`<text x="${labelX + labelW/2}" y="${labelY + 11}" text-anchor="middle" font-size="8" font-weight="700" fill="${mColor}">${label}</text>`);
+        } else if(pts.length > 1){
+          const path = pts.map((p,i)=>`${i?'L':'M'} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' ');
+          sb.push(`<path d="${path}" fill="none" stroke="#0f172a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`);
+        }
+        pts.forEach(p=>{
+          const inCascade = !!cascadeInfo && p.i >= cascadeInfo.onset;
+          const dotColor = inCascade ? (cascadeInfo.correct ? '#10b981' : '#ef4444') : '#0f172a';
+          sb.push(`<circle cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="${inCascade ? '2.2' : '1.8'}" fill="${dotColor}" stroke="#fff" stroke-width=".8"/>`);
+        });
       });
       sb.push('</svg>');
       downloadSVG(sb.join(''), 'communities_snapshot.svg');
