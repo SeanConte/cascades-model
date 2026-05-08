@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 
 <!--
-  CascadesModel0_33
+  CascadesModel0_35
   Change log
   - 0_0: Renamed app to CascadesModel0_0.
   - 0_0: Added a global stack-order toggle so stacked τ figures can be grouped by cascade status or by correctness.
@@ -56,12 +56,14 @@
   - 0_31: Swapped the Tab 0 walkthrough A/B palette to fuchsia and lime green, updating the agent fills, public-vote borders, hover-reveal states, tooltip badges, and snapshot export colors to match.
   - 0_32: Replaced the Tab 0 lime-green walkthrough B palette with a more yellow chartreuse across agent fills, public-vote borders, hover-reveal states, tooltip badges, and snapshot export colors.
   - 0_33: Added a pulsing hover state for the inner private-signal square with a thin colored outline, and redesigned the walkthrough agent tooltip into a clearer three-column public/private/final summary card.
+  - 0_34: Strengthened the walkthrough hover pulse, moved cascade tags just above the public-pressure graph so they no longer block it, and thinned the public-vote border on hover while keeping the default border weight unchanged.
+  - 0_35: Lowered the walkthrough cascade tag slightly so it sits more cleanly between the community row and the graph, added a bit more breathing room above the graph, and prevented the tag from being cut off at the top.
 -->
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>CascadesModel0_33</title>
+<title>CascadesModel0_35</title>
 <style>
     :root{
       --bg:#f6f8fc; --panel:#ffffff; --muted:#64748b; --text:#0f172a;
@@ -207,9 +209,11 @@
       padding-bottom:2px;
     }
     .community-track{
+      position:relative;
       display:block;
       width:max-content;
       min-width:100%;
+      overflow:visible;
     }
     .miniStats{
       font-size:.8rem;
@@ -246,7 +250,7 @@
       flex:0 0 auto;
       overflow:hidden;
       isolation:isolate;
-      transition:border-color .14s ease, box-shadow .14s ease;
+      transition:border-color .14s ease, border-width .14s ease, box-shadow .14s ease;
     }
     .agent::before, .agent::after{content:""; position:absolute; border-radius:inherit; transition:opacity .14s ease, inset .14s ease, background .14s ease, box-shadow .14s ease, transform .14s ease;}
     .agent::before{inset:6px; opacity:0; z-index:0; transform:scale(1); box-shadow:0 0 0 0 transparent;}
@@ -260,19 +264,19 @@
     .agent.A{border-width:3px;border-color:var(--walk-a-strong);box-shadow:inset 0 0 0 1px rgba(255,255,255,.92)}
     .agent.B{border-width:3px;border-color:var(--walk-b-strong);box-shadow:inset 0 0 0 1px rgba(255,255,255,.92)}
     .agent:hover::after{opacity:.06;}
-    .agent:hover::before{box-shadow:0 0 0 1px var(--walk-inner-border); animation:walkInnerPulse 1s ease-in-out infinite;}
-    .agent.A:hover{border-color:rgba(192,38,211,.46)}
-    .agent.B:hover{border-color:rgba(150,184,0,.52)}
+    .agent:hover::before{box-shadow:0 0 0 1px var(--walk-inner-border), 0 0 0 2px rgba(15,23,42,.08); animation:walkInnerPulse .74s ease-in-out infinite;}
+    .agent.A:hover{border-color:rgba(192,38,211,.46);border-width:2px}
+    .agent.B:hover{border-color:rgba(150,184,0,.52);border-width:2px}
     .agent-label{position:relative; z-index:2;}
     @keyframes walkInnerPulse{
       0%,100%{transform:scale(1); filter:saturate(1) brightness(1);}
-      50%{transform:scale(1.09); filter:saturate(1.1) brightness(1.04);}
+      50%{transform:scale(1.2); filter:saturate(1.28) brightness(1.12);}
     }
     .public-pressure-graph{
       display:block;
       width:100%;
       height:52px;
-      margin-top:6px;
+      margin-top:16px;
       border:1px solid rgba(148,163,184,.35);
       border-radius:10px;
       background:#fff;
@@ -609,7 +613,7 @@
 <body>
 <div class="page-shell">
 <header>
-<h1>CascadesModel0_33</h1>
+<h1>CascadesModel0_35</h1>
 </header><div id="commandBarParking" style="display:none"><div class="page-command-bar card" id="globalCommandBar">
 <div class="command-bar-grid">
 <div class="command-group">
@@ -2411,7 +2415,7 @@ function redrawAllStackedFigures(){
         const labelW = Math.max(56, label.length * 5.8 + 12);
         const labelH = 16;
         const labelX = Math.max(4, Math.min(W - labelW - 4, markerX - labelW/2));
-        const labelY = 2;
+        const labelY = -10;
         const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
         rect.setAttribute('x',labelX);
         rect.setAttribute('y',labelY);
@@ -3412,7 +3416,7 @@ function exportRibbonSVG(){
           const labelW = Math.max(56, label.length * 5.8 + 12);
           const labelH = 16;
           const labelX = Math.max(graphX + 4, Math.min(graphX + graphW - labelW - 4, mx - labelW/2));
-          const labelY = graphY + 2;
+          const labelY = graphY - 10;
           sb.push(`<rect x="${labelX}" y="${labelY}" width="${labelW}" height="${labelH}" rx="8" ry="8" fill="#ffffff" stroke="${mColor}" stroke-width="1"/>`);
           sb.push(`<text x="${labelX + labelW/2}" y="${labelY + 11}" text-anchor="middle" font-size="8" font-weight="700" fill="${mColor}">${label}</text>`);
         } else if(pts.length > 1){
