@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 
 <!--
-  CascadesModel0_35
+  CascadesModel0_36
   Change log
   - 0_0: Renamed app to CascadesModel0_0.
   - 0_0: Added a global stack-order toggle so stacked τ figures can be grouped by cascade status or by correctness.
@@ -58,12 +58,13 @@
   - 0_33: Added a pulsing hover state for the inner private-signal square with a thin colored outline, and redesigned the walkthrough agent tooltip into a clearer three-column public/private/final summary card.
   - 0_34: Strengthened the walkthrough hover pulse, moved cascade tags just above the public-pressure graph so they no longer block it, and thinned the public-vote border on hover while keeping the default border weight unchanged.
   - 0_35: Lowered the walkthrough cascade tag slightly so it sits more cleanly between the community row and the graph, added a bit more breathing room above the graph, and prevented the tag from being cut off at the top.
+  - 0_36: Cleaned the page and browser title to Cascades model, moved the version into a separate corner chip, and centralized Auto/Pause state handling so New Run, Complete, Reset, and run completion always restore the button to Auto.
 -->
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>CascadesModel0_35</title>
+<title>Cascades model</title>
 <style>
     :root{
       --bg:#f6f8fc; --panel:#ffffff; --muted:#64748b; --text:#0f172a;
@@ -92,7 +93,9 @@
     }
     .page-shell{width:min(2160px, calc(100vw - clamp(56px, 10vw, 320px)));margin:0 auto;padding:0 clamp(10px, 1vw, 18px) clamp(22px, 2vw, 36px);}
     header{padding:clamp(10px,1vw,14px) 0 6px}
+    .app-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
     h1{margin:0;font-size:1.25rem;letter-spacing:.2px;color:var(--ink-2)}
+    .version-chip{display:inline-flex;align-items:center;justify-content:center;padding:4px 9px;border:1px solid var(--ring);border-radius:999px;background:#fff;color:var(--ink-3);font-size:.72rem;font-weight:800;letter-spacing:.035em;box-shadow:0 1px 2px rgba(15,23,42,.06);white-space:nowrap}
     .page-command-bar{margin:0 0 10px;padding:4px 6px;position:sticky;top:10px;z-index:16;background:rgba(255,255,255,.92);backdrop-filter:blur(6px);box-shadow:0 3px 12px rgba(15,23,42,.05);}
     .command-bar-grid{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
     .command-group{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;padding:0;border:none;border-radius:0;background:transparent;box-shadow:none}
@@ -612,8 +615,9 @@
 </head>
 <body>
 <div class="page-shell">
-<header>
-<h1>CascadesModel0_35</h1>
+<header class="app-header">
+<h1>Cascades model</h1>
+<span class="version-chip" aria-label="Version">v0_36</span>
 </header><div id="commandBarParking" style="display:none"><div class="page-command-bar card" id="globalCommandBar">
 <div class="command-bar-grid">
 <div class="command-group">
@@ -2169,6 +2173,32 @@ function redrawAllStackedFigures(){
       updateCasesMeta('tab1CasesMetaOrder', msg);
     }
 
+    function setAutoButtonState(isRunning){
+      const autoBtn = el('btn-auto');
+      if(autoBtn) autoBtn.textContent = isRunning ? 'Pause' : 'Auto';
+    }
+
+    function stopAutoRun(){
+      if(autoTimer){
+        clearInterval(autoTimer);
+        autoTimer = null;
+      }
+      setAutoButtonState(false);
+    }
+
+    function setWalkthroughRunControls({hasRun=false, finished=false}={}){
+      const stepBtn = el('btn-step');
+      const autoBtn = el('btn-auto');
+      const completeBtn = el('btn-complete');
+      const batchBtn = el('btn-runbatch');
+      const active = !!hasRun && !finished;
+      if(stepBtn) stepBtn.disabled = !active;
+      if(autoBtn) autoBtn.disabled = !active;
+      if(completeBtn) completeBtn.disabled = !active;
+      if(batchBtn) batchBtn.disabled = !hasRun;
+      if(!active) setAutoButtonState(false);
+    }
+
     function resetUI(){
       const rowsEl = el('rows');
       if(rowsEl) rowsEl.innerHTML='';
@@ -2183,7 +2213,7 @@ function redrawAllStackedFigures(){
     }
 
     function clearAll(){
-      if(autoTimer){ clearInterval(autoTimer); autoTimer=null; }
+      stopAutoRun();
       communities=[];
       resetUI();
       resetTauSweep();
@@ -2192,10 +2222,7 @@ function redrawAllStackedFigures(){
       drawTab1SummaryPlots();
       renderTauPartitions();
       refreshFigureCaseMeta();
-      el('btn-step').disabled=true;
-      el('btn-auto').disabled=true;
-      el('btn-complete').disabled=true;
-      el('btn-runbatch').disabled=true;
+      setWalkthroughRunControls({hasRun:false, finished:true});
     }
 
     function renderRows(){
@@ -2712,10 +2739,8 @@ function redrawAllStackedFigures(){
     }
 
     function finishRun(){
-      el('btn-step').disabled=true;
-      el('btn-auto').disabled=true;
-      el('btn-complete').disabled=true;
-      if(autoTimer){clearInterval(autoTimer); autoTimer=null;}
+      stopAutoRun();
+      setWalkthroughRunControls({hasRun:true, finished:true});
       summarizeRunToAgg();
     }
 
@@ -2754,10 +2779,8 @@ function redrawAllStackedFigures(){
       renderRows();
       makeAggBoxes();
       updateAggUI();
-      el('btn-step').disabled=false;
-      el('btn-auto').disabled=false;
-      el('btn-complete').disabled=false;
-      el('btn-runbatch').disabled=false;
+      stopAutoRun();
+      setWalkthroughRunControls({hasRun:true, finished:false});
       el('btn-clearall').disabled=false;
       refreshFigureCaseMeta();
       log(`<b>New run</b> — true state: <b>${stateA?'A':'B'}</b>, p=${params.p}, q=${params.q}, N=${params.N}, λ=${lambda.toFixed(3)}, L₀=${Lprior.toFixed(3)}`);
@@ -5021,26 +5044,28 @@ function exportRibbonSVG(){
 
     // Tab 1 buttons
     el('btn-new').addEventListener('click',()=>{
-      if(autoTimer){clearInterval(autoTimer); autoTimer=null;}
+      stopAutoRun();
       initRun();
     });
     el('btn-step').addEventListener('click', stepOnce);
     el('btn-complete').addEventListener('click', ()=>{
+      stopAutoRun();
       while (stepIndex < params.N) stepOnce();
     });
     el('btn-auto').addEventListener('click', ()=>{
+      if(!params || stepIndex >= params.N){
+        stopAutoRun();
+        setWalkthroughRunControls({hasRun:!!params, finished:true});
+        return;
+      }
       if(!autoTimer){
-        el('btn-auto').textContent='Pause';
+        setAutoButtonState(true);
         autoTimer=setInterval(()=>{
           if (stepIndex < params.N) stepOnce();
-          else {
-            clearInterval(autoTimer); autoTimer=null;
-            el('btn-auto').textContent='Auto';
-          }
+          else finishRun();
         }, 400);
       } else {
-        clearInterval(autoTimer); autoTimer=null;
-        el('btn-auto').textContent='Auto';
+        stopAutoRun();
       }
     });
     el('btn-runbatch').addEventListener('click', ()=>{
