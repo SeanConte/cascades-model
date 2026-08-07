@@ -1,0 +1,1595 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wise Cascade Time Calculator</title>
+<style>
+  :root {
+    --bg:#fff;
+    --panel:#f6f7f9;
+    --text:#17191c;
+    --muted:#5f6670;
+    --border:#d8dde4;
+    --grid:#e7eaf0;
+    --accent:#3b6ea8;
+    --dim:#b8bec7;
+  }
+
+  * { box-sizing:border-box; }
+
+  body {
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  }
+
+  .wrap {
+    position:relative;
+    max-width:1180px;
+    margin:0 auto;
+    padding:20px;
+  }
+
+  h1 {
+    margin:0 0 10px;
+    padding-right:70px;
+    font-size:1.35rem;
+    font-weight:650;
+  }
+
+  .version {
+    position:absolute;
+    top:20px;
+    right:20px;
+    color:var(--muted);
+    font-size:.78rem;
+  }
+
+  p.desc {
+    margin:0 0 10px;
+    line-height:1.5;
+  }
+
+  .controls {
+    display:grid;
+    grid-template-columns:220px 1fr;
+    gap:0;
+    margin:16px 0 10px;
+    border:1px solid var(--border);
+    border-radius:12px;
+    background:var(--panel);
+    overflow:hidden;
+  }
+
+  .axis-controls {
+    padding:14px;
+    border-right:1px solid var(--border);
+  }
+
+  .range-controls { padding:14px; }
+
+  .section-title {
+    margin:0 0 10px;
+    font-size:.88rem;
+    font-weight:650;
+    color:var(--text);
+  }
+
+  .axis-stack {
+    display:grid;
+    gap:10px;
+  }
+
+  .range-row {
+    display:grid;
+    grid-template-columns:repeat(4,minmax(120px,1fr));
+    gap:12px;
+    align-items:end;
+  }
+
+  .range-row + .range-row {
+    margin-top:13px;
+    padding-top:13px;
+    border-top:1px solid var(--border);
+  }
+
+  .actions-row {
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:13px;
+    padding-top:13px;
+    border-top:1px solid var(--border);
+  }
+
+  .field {
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+    min-width:0;
+  }
+
+  .field[hidden] { display:none !important; }
+
+  .field label {
+    font-size:.82rem;
+    color:var(--muted);
+    font-weight:600;
+  }
+
+  input,select,button { font:inherit; }
+
+  input,select {
+    width:100%;
+    min-width:0;
+    border:1px solid var(--border);
+    border-radius:8px;
+    background:#fff;
+    color:var(--text);
+    padding:8px 9px;
+  }
+
+  select:disabled {
+    opacity:.55;
+    cursor:not-allowed;
+  }
+
+  button {
+    border:1px solid var(--border);
+    background:#fff;
+    color:var(--text);
+    border-radius:8px;
+    padding:8px 11px;
+    cursor:pointer;
+  }
+
+  button.primary {
+    background:var(--accent);
+    color:#fff;
+    border-color:var(--accent);
+  }
+
+  .status {
+    min-height:1.3em;
+    margin:8px 0 2px;
+    color:#a23b32;
+    font-size:.9rem;
+  }
+
+  .viz-region {
+    user-select:none;
+  }
+
+  .plot-shell {
+    position:relative;
+    width:100%;
+    border-top:1px solid var(--border);
+    margin-top:8px;
+    padding-top:12px;
+  }
+
+  svg {
+    display:block;
+    width:100%;
+    height:auto;
+    min-height:520px;
+    overflow:visible;
+    background:#fff;
+  }
+
+  .axis-line { stroke:#6f7680; stroke-width:1; }
+  .grid-line { stroke:var(--grid); stroke-width:1; }
+  .tick-text,.axis-label { fill:var(--muted); font-size:12px; }
+  .axis-label { font-size:13px; font-weight:600; }
+
+  .series-line {
+    fill:none;
+    stroke-width:2.2;
+    vector-effect:non-scaling-stroke;
+    transition:opacity 80ms linear, stroke 80ms linear, stroke-width 80ms linear;
+  }
+
+  .series-line.is-dimmed {
+    stroke:var(--dim) !important;
+    opacity:.12;
+  }
+
+  .series-line.is-hidden {
+    opacity:0;
+  }
+
+  .series-line.is-emphasized {
+    opacity:1;
+    stroke-width:2.8;
+  }
+
+  .results-wrap {
+    margin-top:10px;
+    overflow-x:auto;
+  }
+
+  .results-table {
+    width:100%;
+    border-collapse:separate;
+    border-spacing:0;
+    table-layout:fixed;
+    font-size:.84rem;
+  }
+
+  .results-table th,
+  .results-table td {
+    border-right:1px solid var(--border);
+    border-bottom:1px solid var(--border);
+    background:#fff;
+    padding:8px 8px;
+    text-align:center;
+    vertical-align:middle;
+    transition:background 80ms linear, opacity 80ms linear;
+  }
+
+  .results-table tr:first-child th {
+    border-top:1px solid var(--border);
+  }
+
+  .results-table th:first-child,
+  .results-table td:first-child {
+    border-left:1px solid var(--border);
+  }
+
+  .results-table thead th:first-child {
+    border-top-left-radius:9px;
+  }
+
+  .results-table thead th:last-child {
+    border-top-right-radius:9px;
+  }
+
+  .results-table tbody tr:last-child th:first-child {
+    border-bottom-left-radius:9px;
+  }
+
+  .results-table tbody tr:last-child td:last-child {
+    border-bottom-right-radius:9px;
+  }
+
+  .results-table .row-head {
+    width:92px;
+    text-align:left;
+    font-weight:650;
+    color:var(--text);
+    background:var(--panel);
+    cursor:pointer;
+  }
+
+  .results-table .q-head {
+    font-weight:600;
+    color:var(--text);
+    background:var(--panel);
+    cursor:pointer;
+    white-space:nowrap;
+  }
+
+  .results-table .series-cell {
+    cursor:pointer;
+    min-width:90px;
+  }
+
+  .results-table .interactive:hover,
+  .results-table .interactive.is-hovered {
+    background:#eef2f7;
+  }
+
+  .results-table .interactive.is-selected {
+    background:#e6edf6;
+    box-shadow:inset 0 0 0 1px #93a8c0;
+  }
+
+  .cell-content {
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:4px;
+    min-width:0;
+  }
+
+  .line-sample {
+    display:block;
+    width:34px;
+    height:0;
+    border-top:3px solid currentColor;
+  }
+
+  .line-sample.dashed {
+    border-top-style:dashed;
+  }
+
+  .cell-range {
+    color:var(--muted);
+    font-size:.75rem;
+    line-height:1.1;
+    white-space:nowrap;
+  }
+
+  .table-note {
+    margin:5px 0 0;
+    color:var(--muted);
+    font-size:.75rem;
+    text-align:right;
+  }
+
+  .tooltip {
+    position:absolute;
+    display:none;
+    pointer-events:none;
+    max-width:360px;
+    padding:9px 10px;
+    border:1px solid var(--border);
+    border-radius:9px;
+    background:rgba(255,255,255,.97);
+    color:var(--text);
+    box-shadow:0 5px 18px rgba(0,0,0,.12);
+    font-size:.83rem;
+    line-height:1.42;
+    z-index:10;
+  }
+
+  .tooltip .muted { color:var(--muted); }
+
+  @media (max-width:900px) {
+    .controls { grid-template-columns:1fr; }
+    .axis-controls {
+      border-right:0;
+      border-bottom:1px solid var(--border);
+    }
+    .axis-stack { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    .range-row { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  }
+
+  @media (max-width:560px) {
+    .wrap { padding:12px; }
+    .version { top:12px; right:12px; }
+    .axis-stack,.range-row { grid-template-columns:1fr; }
+    svg { min-height:420px; }
+    .results-table { min-width:720px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="version">v0.3</div>
+  <h1>Wise Cascade Time Calculator</h1>
+
+  <p class="desc">The Wise Cascades Theorem says that for any problem, q, there exist a level of tau and N which guarantee the community will enter an information cascade with the correct answer with arbitrarily high reliability.</p>
+  <p class="desc">This app shows what level of tau is required to achieve the desired level of reliability, and as a result, how many agents are expected to be required before an information cascade begins.</p>
+
+  <section class="controls" aria-label="Plot controls">
+    <div class="axis-controls">
+      <div class="section-title">Axis scales</div>
+      <div class="axis-stack">
+        <div class="field">
+          <label for="xScale">X-axis</label>
+          <select id="xScale">
+            <option value="linear">Linear</option>
+            <option value="log">Logarithmic</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="leftScale">Y-axis (left): E[T]</label>
+          <select id="leftScale">
+            <option value="linear">Linear</option>
+            <option value="log" selected>Logarithmic</option>
+          </select>
+        </div>
+
+        <div class="field" id="rightScaleField">
+          <label for="rightScale">Y-axis (right): tau</label>
+          <select id="rightScale">
+            <option value="linear" selected>Linear</option>
+            <option value="log">Logarithmic</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="range-controls">
+      <div class="section-title">Range &amp; spacing</div>
+
+      <div class="range-row">
+        <div class="field">
+          <label for="xMode">Horizontal variable</label>
+          <select id="xMode">
+            <option value="certainty">Desired reliability</option>
+            <option value="error">Allowed error</option>
+            <option value="tau">Tau</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="xMin">X minimum</label>
+          <input id="xMin" type="number" step="any" value="0.5001">
+        </div>
+
+        <div class="field">
+          <label for="xMax">X maximum</label>
+          <input id="xMax" type="number" step="any" value="0.9999">
+        </div>
+
+        <div class="field">
+          <label for="points">Resolution</label>
+          <input id="points" type="number" min="40" max="3000" step="10" value="500">
+        </div>
+      </div>
+
+      <div class="range-row">
+        <div class="field">
+          <label for="qMin">Minimum q</label>
+          <input id="qMin" type="number" min="0.5000001" max="0.999999" step="0.0001" value="0.5001">
+        </div>
+
+        <div class="field">
+          <label for="qMax">Maximum q</label>
+          <input id="qMax" type="number" min="0.5000001" max="0.999999" step="0.01" value="0.999">
+        </div>
+
+        <div class="field">
+          <label for="qCount">Number of q lines</label>
+          <input id="qCount" type="number" min="1" max="16" step="1" value="10">
+        </div>
+
+        <div class="field">
+          <label for="qMode">q spacing</label>
+          <select id="qMode">
+            <option value="linear">Linear in q</option>
+            <option value="logdelta" selected>Logarithmic in q − 0.5</option>
+            <option value="custom">Custom q list</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="range-row" id="customRow" hidden>
+        <div class="field" style="grid-column:1/-1;">
+          <label for="qCustom">Custom q values, comma-separated</label>
+          <input id="qCustom" type="text" value="0.5001, 0.501, 0.51, 0.6, 0.7">
+        </div>
+      </div>
+
+      <div class="actions-row">
+        <button class="primary" id="drawBtn" type="button">Draw figure</button>
+        <button id="pngBtn" type="button">Download PNG</button>
+        <button id="csvBtn" type="button">Download CSV</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="status" class="status" aria-live="polite"></div>
+
+  <div id="vizRegion" class="viz-region">
+    <div class="plot-shell">
+      <svg id="plot" viewBox="0 0 1040 620" role="img" aria-label="Expected cascade threshold time plot"></svg>
+      <div id="tooltip" class="tooltip"></div>
+    </div>
+
+    <div class="results-wrap">
+      <table id="resultsTable" class="results-table" aria-label="Interactive series legend and result ranges"></table>
+    </div>
+    <div id="tableNote" class="table-note">Cell values show the plotted min–max range.</div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const els = {
+    xMode: document.getElementById('xMode'),
+    xScale: document.getElementById('xScale'),
+    leftScale: document.getElementById('leftScale'),
+    rightScale: document.getElementById('rightScale'),
+    rightScaleField: document.getElementById('rightScaleField'),
+    qMode: document.getElementById('qMode'),
+    qMin: document.getElementById('qMin'),
+    qMax: document.getElementById('qMax'),
+    qCount: document.getElementById('qCount'),
+    qCustom: document.getElementById('qCustom'),
+    customRow: document.getElementById('customRow'),
+    xMin: document.getElementById('xMin'),
+    xMax: document.getElementById('xMax'),
+    points: document.getElementById('points'),
+    drawBtn: document.getElementById('drawBtn'),
+    pngBtn: document.getElementById('pngBtn'),
+    csvBtn: document.getElementById('csvBtn'),
+    plot: document.getElementById('plot'),
+    resultsTable: document.getElementById('resultsTable'),
+    tableNote: document.getElementById('tableNote'),
+    tooltip: document.getElementById('tooltip'),
+    status: document.getElementById('status'),
+    vizRegion: document.getElementById('vizRegion')
+  };
+
+  let currentSeries = [];
+  let currentDualAxis = true;
+
+  // Each visible plotted line has a stable key:
+  // "et:0", "tau:0", "et:1", "tau:1", ...
+  const selectedKeys = new Set();
+  let hoverKeys = null;
+
+  function clamp(x, lo, hi) {
+    return Math.max(lo, Math.min(hi, x));
+  }
+
+  function logit(c) {
+    return Math.log(c / (1 - c));
+  }
+
+  function logOdds(q) {
+    return Math.log(q / (1 - q));
+  }
+
+  function barrierForTarget(q, certainty) {
+    if (!(q > 0.5 && q < 1)) return Infinity;
+    if (!(certainty > 0.5 && certainty < 1)) return Infinity;
+    const raw = logit(certainty) / logOdds(q);
+    return Math.max(2, Math.ceil(raw - 1e-12));
+  }
+
+  function barrierForTau(tau) {
+    if (!(tau > 0 && tau <= 1)) return Infinity;
+    return Math.floor(1 / tau + 1e-12) + 1;
+  }
+
+  function attainedCertainty(q, d) {
+    const z = d * logOdds(q);
+    if (z > 745) return 1;
+    return 1 / (1 + Math.exp(-z));
+  }
+
+  function expectedTime(q, d) {
+    const drift = 2 * q - 1;
+    if (Math.abs(drift) < 1e-12) return d * d;
+    return d * Math.tanh(0.5 * d * logOdds(q)) / drift;
+  }
+
+  function tauMaxFromBarrier(d) {
+    return 1 / (d - 1);
+  }
+
+  function tauInterval(d) {
+    return { low: 1 / d, high: 1 / (d - 1) };
+  }
+
+  function formatNumber(x, digits = 5) {
+    if (!Number.isFinite(x)) return '∞';
+    const ax = Math.abs(x);
+    if ((ax !== 0 && ax < 1e-4) || ax >= 1e6) {
+      return x.toExponential(3);
+    }
+    return x.toLocaleString(undefined, { maximumSignificantDigits: digits });
+  }
+
+  function compactRange(min, max) {
+    if (!Number.isFinite(min) || !Number.isFinite(max)) return '';
+    if (Math.abs(max - min) < 1e-12) return formatNumber(min, 4);
+    return `${formatNumber(min, 4)}–${formatNumber(max, 4)}`;
+  }
+
+  function colorFor(i, n) {
+    const hue = (215 + i * (300 / Math.max(1, n))) % 360;
+    return `hsl(${hue} 62% 44%)`;
+  }
+
+  function qValues() {
+    const mode = els.qMode.value;
+
+    if (mode === 'custom') {
+      return [...new Set(
+        els.qCustom.value
+          .split(/[\s,;]+/)
+          .map(Number)
+          .filter(q => q > 0.5 && q < 1)
+      )].sort((a, b) => a - b);
+    }
+
+    const qMin = Number(els.qMin.value);
+    const qMax = Number(els.qMax.value);
+    const count = Math.max(1, Math.round(Number(els.qCount.value)));
+
+    if (!(qMin > 0.5 && qMin < 1 && qMax > 0.5 && qMax < 1 && qMax >= qMin)) {
+      return [];
+    }
+
+    if (count === 1) return [qMin];
+
+    const out = [];
+
+    if (mode === 'linear') {
+      for (let i = 0; i < count; i++) {
+        out.push(qMin + (qMax - qMin) * i / (count - 1));
+      }
+    } else {
+      const lo = Math.log10(qMin - 0.5);
+      const hi = Math.log10(qMax - 0.5);
+
+      for (let i = 0; i < count; i++) {
+        out.push(0.5 + Math.pow(10, lo + (hi - lo) * i / (count - 1)));
+      }
+    }
+
+    return out;
+  }
+
+  function sampledXValues(min, max, n, scale) {
+    const out = [];
+
+    if (scale === 'log') {
+      if (!(min > 0 && max > min)) return out;
+
+      const lo = Math.log(min);
+      const hi = Math.log(max);
+
+      for (let i = 0; i < n; i++) {
+        out.push(Math.exp(lo + (hi - lo) * i / (n - 1)));
+      }
+    } else {
+      if (!(max > min)) return out;
+
+      for (let i = 0; i < n; i++) {
+        out.push(min + (max - min) * i / (n - 1));
+      }
+    }
+
+    return out;
+  }
+
+  function buildSeries() {
+    const qs = qValues();
+    const mode = els.xMode.value;
+    const xMin = Number(els.xMin.value);
+    const xMax = Number(els.xMax.value);
+    const n = Math.max(40, Math.round(Number(els.points.value)));
+    const xs = sampledXValues(xMin, xMax, n, els.xScale.value);
+    const series = [];
+
+    for (const q of qs) {
+      const rows = [];
+
+      for (const x of xs) {
+        let d;
+        let target;
+        let tauInput = null;
+
+        if (mode === 'certainty') {
+          target = x;
+          d = barrierForTarget(q, target);
+        } else if (mode === 'error') {
+          target = 1 - x;
+          d = barrierForTarget(q, target);
+        } else {
+          tauInput = x;
+          d = barrierForTau(tauInput);
+          target = attainedCertainty(q, d);
+        }
+
+        if (!Number.isFinite(d)) continue;
+
+        const interval = tauInterval(d);
+
+        rows.push({
+          x,
+          q,
+          d,
+          target,
+          attained: attainedCertainty(q, d),
+          expected: expectedTime(q, d),
+          tauInput,
+          tauMax: tauMaxFromBarrier(d),
+          tauLow: interval.low,
+          tauHigh: interval.high
+        });
+      }
+
+      if (rows.length) {
+        series.push({ q, rows });
+      }
+    }
+
+    return series;
+  }
+
+  function niceLinearTicks(min, max, count = 7) {
+    if (!(max > min)) return [min];
+
+    const span = max - min;
+    const raw = span / Math.max(1, count - 1);
+    const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    const residual = raw / mag;
+
+    let nice;
+
+    if (residual <= 1) nice = 1;
+    else if (residual <= 2) nice = 2;
+    else if (residual <= 5) nice = 5;
+    else nice = 10;
+
+    const step = nice * mag;
+    const start = Math.ceil(min / step) * step;
+    const ticks = [];
+
+    for (let v = start; v <= max + step * 1e-9; v += step) {
+      ticks.push(v);
+    }
+
+    return ticks;
+  }
+
+  function logTicks(min, max) {
+    const lo = Math.floor(Math.log10(min));
+    const hi = Math.ceil(Math.log10(max));
+    let ticks = [];
+
+    for (let p = lo; p <= hi; p++) {
+      for (const m of [1, 2, 5]) {
+        const v = m * Math.pow(10, p);
+        if (v >= min && v <= max) ticks.push(v);
+      }
+    }
+
+    if (ticks.length > 12) {
+      ticks = ticks.filter(v => {
+        const p = Math.floor(Math.log10(v));
+        return Math.abs(v / Math.pow(10, p) - 1) < 1e-10;
+      });
+    }
+
+    return ticks;
+  }
+
+  function makeTicks(min, max, scale) {
+    return scale === 'log' ? logTicks(min, max) : niceLinearTicks(min, max, 7);
+  }
+
+  function scaledDomain(values, scale, pad = 0.05) {
+    let min = Math.min(...values);
+    let max = Math.max(...values);
+
+    if (scale === 'log') {
+      if (!(min > 0)) {
+        min = Math.min(...values.filter(v => v > 0));
+      }
+
+      const ratio = max / min;
+
+      if (!(ratio > 1)) {
+        return [min / 1.1, max * 1.1];
+      }
+
+      return [
+        min / Math.pow(ratio, pad),
+        max * Math.pow(ratio, pad)
+      ];
+    }
+
+    if (min >= 0) min = 0;
+
+    const span = max - min || 1;
+
+    return [
+      min,
+      max + span * pad
+    ];
+  }
+
+  function mapper(min, max, scale, start, end, reversed = false) {
+    const a = scale === 'log' ? Math.log(min) : min;
+    const b = scale === 'log' ? Math.log(max) : max;
+
+    return value => {
+      const v = scale === 'log' ? Math.log(value) : value;
+      let t = (v - a) / (b - a);
+
+      if (reversed) t = 1 - t;
+
+      return start + t * (end - start);
+    };
+  }
+
+  function svgEl(name, attrs = {}) {
+    const node = document.createElementNS('http://www.w3.org/2000/svg', name);
+
+    for (const [k, v] of Object.entries(attrs)) {
+      node.setAttribute(k, v);
+    }
+
+    return node;
+  }
+
+  function lineKey(kind, qIndex) {
+    return `${kind}:${qIndex}`;
+  }
+
+  function allVisibleKeys() {
+    const keys = [];
+
+    currentSeries.forEach((_, i) => {
+      keys.push(lineKey('et', i));
+
+      if (currentDualAxis) {
+        keys.push(lineKey('tau', i));
+      }
+    });
+
+    return keys;
+  }
+
+  function keysForTarget(targetType, index = null) {
+    if (targetType === 'cell-et') {
+      return new Set([lineKey('et', index)]);
+    }
+
+    if (targetType === 'cell-tau') {
+      return currentDualAxis
+        ? new Set([lineKey('tau', index)])
+        : new Set();
+    }
+
+    if (targetType === 'row-et') {
+      return new Set(currentSeries.map((_, i) => lineKey('et', i)));
+    }
+
+    if (targetType === 'row-tau') {
+      return currentDualAxis
+        ? new Set(currentSeries.map((_, i) => lineKey('tau', i)))
+        : new Set();
+    }
+
+    if (targetType === 'q') {
+      const set = new Set([lineKey('et', index)]);
+
+      if (currentDualAxis) {
+        set.add(lineKey('tau', index));
+      }
+
+      return set;
+    }
+
+    return new Set();
+  }
+
+  function unionSets(a, b) {
+    return new Set([...a, ...b]);
+  }
+
+  function selectionMode() {
+    if (hoverKeys && hoverKeys.size) {
+      if (selectedKeys.size) {
+        return {
+          active: unionSets(selectedKeys, hoverKeys),
+          mode: 'selected-hover'
+        };
+      }
+
+      return {
+        active: hoverKeys,
+        mode: 'hover-only'
+      };
+    }
+
+    if (selectedKeys.size) {
+      return {
+        active: selectedKeys,
+        mode: 'selected-only'
+      };
+    }
+
+    return {
+      active: null,
+      mode: 'all'
+    };
+  }
+
+  function updateLineEmphasis() {
+    const state = selectionMode();
+
+    els.plot.querySelectorAll('.series-line[data-key]').forEach(path => {
+      const key = path.dataset.key;
+
+      path.classList.remove('is-dimmed', 'is-hidden', 'is-emphasized');
+
+      if (state.mode === 'all') return;
+
+      if (state.active.has(key)) {
+        path.classList.add('is-emphasized');
+        return;
+      }
+
+      if (state.mode === 'hover-only') {
+        path.classList.add('is-dimmed');
+      } else {
+        path.classList.add('is-hidden');
+      }
+    });
+
+    updateTableSelectionStates();
+  }
+
+  function isGroupFullySelected(keys) {
+    if (!keys.size) return false;
+
+    for (const key of keys) {
+      if (!selectedKeys.has(key)) return false;
+    }
+
+    return true;
+  }
+
+  function toggleGroup(keys) {
+    if (!keys.size) return;
+
+    if (isGroupFullySelected(keys)) {
+      keys.forEach(k => selectedKeys.delete(k));
+    } else {
+      keys.forEach(k => selectedKeys.add(k));
+    }
+
+    updateLineEmphasis();
+  }
+
+  function resetSelections() {
+    selectedKeys.clear();
+    hoverKeys = null;
+    updateLineEmphasis();
+  }
+
+  function updateTableSelectionStates() {
+    els.resultsTable.querySelectorAll('.interactive[data-target]').forEach(el => {
+      const target = el.dataset.target;
+      const index = el.dataset.index === undefined ? null : Number(el.dataset.index);
+      const keys = keysForTarget(target, index);
+
+      el.classList.toggle('is-selected', isGroupFullySelected(keys));
+
+      let hovered = false;
+
+      if (hoverKeys && keys.size) {
+        hovered = [...keys].some(k => hoverKeys.has(k));
+      }
+
+      el.classList.toggle('is-hovered', hovered);
+    });
+  }
+
+  function attachTableInteractions() {
+    els.resultsTable.querySelectorAll('.interactive[data-target]').forEach(el => {
+      const target = el.dataset.target;
+      const index = el.dataset.index === undefined ? null : Number(el.dataset.index);
+
+      el.addEventListener('mouseenter', () => {
+        hoverKeys = keysForTarget(target, index);
+        updateLineEmphasis();
+      });
+
+      el.addEventListener('mouseleave', () => {
+        hoverKeys = null;
+        updateLineEmphasis();
+      });
+
+      el.addEventListener('click', evt => {
+        evt.stopPropagation();
+        toggleGroup(keysForTarget(target, index));
+      });
+    });
+  }
+
+  function renderResultsTable() {
+    const dual = currentDualAxis;
+    const qHeads = currentSeries.map((s, i) => {
+      return `<th class="q-head interactive" data-target="q" data-index="${i}">q = ${formatNumber(s.q, 6)}</th>`;
+    }).join('');
+
+    const etCells = currentSeries.map((s, i) => {
+      const values = s.rows.map(r => r.expected);
+      const min = Math.min(...values);
+      const max = Math.max(...values);
+      const color = colorFor(i, currentSeries.length);
+
+      return `
+        <td class="series-cell interactive" data-target="cell-et" data-index="${i}">
+          <div class="cell-content">
+            <span class="line-sample" style="color:${color}"></span>
+            <span class="cell-range">${compactRange(min, max)}</span>
+          </div>
+        </td>
+      `;
+    }).join('');
+
+    let tauRow = '';
+
+    if (dual) {
+      const tauCells = currentSeries.map((s, i) => {
+        const values = s.rows.map(r => r.tauMax);
+        const min = Math.min(...values);
+        const max = Math.max(...values);
+        const color = colorFor(i, currentSeries.length);
+
+        return `
+          <td class="series-cell interactive" data-target="cell-tau" data-index="${i}">
+            <div class="cell-content">
+              <span class="line-sample dashed" style="color:${color}"></span>
+              <span class="cell-range">${compactRange(min, max)}</span>
+            </div>
+          </td>
+        `;
+      }).join('');
+
+      tauRow = `
+        <tr>
+          <th class="row-head interactive" data-target="row-tau">tau</th>
+          ${tauCells}
+        </tr>
+      `;
+    }
+
+    els.resultsTable.innerHTML = `
+      <thead>
+        <tr>
+          <th class="row-head" aria-hidden="true"></th>
+          ${qHeads}
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th class="row-head interactive" data-target="row-et">E[T]</th>
+          ${etCells}
+        </tr>
+        ${tauRow}
+      </tbody>
+    `;
+
+    els.tableNote.textContent = dual
+      ? 'Cell values show the plotted min–max range. Hover to isolate; click to pin; double-click the figure/table to reset.'
+      : 'Cell values show the plotted min–max range. Hover to isolate; click to pin; double-click the figure/table to reset.';
+
+    attachTableInteractions();
+    updateTableSelectionStates();
+  }
+
+  function render() {
+    els.status.textContent = '';
+    currentSeries = buildSeries();
+
+    if (!currentSeries.length) {
+      els.plot.innerHTML = '';
+      els.resultsTable.innerHTML = '';
+      els.status.textContent = 'No valid series. Check q values and axis ranges.';
+      return;
+    }
+
+    const mode = els.xMode.value;
+    currentDualAxis = mode !== 'tau';
+
+    // Remove pinned selections that no longer correspond to a visible line.
+    const validKeys = new Set(allVisibleKeys());
+    [...selectedKeys].forEach(key => {
+      if (!validKeys.has(key)) selectedKeys.delete(key);
+    });
+
+    hoverKeys = null;
+
+    const rows = currentSeries.flatMap(s => s.rows);
+
+    const xValues = rows.map(r => r.x);
+    const xMin = Math.min(...xValues);
+    const xMax = Math.max(...xValues);
+
+    const [leftMin, leftMax] = scaledDomain(
+      rows.map(r => r.expected),
+      els.leftScale.value,
+      0.05
+    );
+
+    let rightMin = null;
+    let rightMax = null;
+
+    if (currentDualAxis) {
+      [rightMin, rightMax] = scaledDomain(
+        rows.map(r => r.tauMax),
+        els.rightScale.value,
+        0.04
+      );
+    }
+
+    const W = 1040;
+    const H = 620;
+
+    const margin = {
+      left:92,
+      right:currentDualAxis ? 94 : 34,
+      top:22,
+      bottom:82
+    };
+
+    const pw = W - margin.left - margin.right;
+    const ph = H - margin.top - margin.bottom;
+
+    const xMap = mapper(
+      xMin,
+      xMax,
+      els.xScale.value,
+      margin.left,
+      margin.left + pw,
+      false
+    );
+
+    const leftMap = mapper(
+      leftMin,
+      leftMax,
+      els.leftScale.value,
+      margin.top,
+      margin.top + ph,
+      true
+    );
+
+    const rightMap = currentDualAxis
+      ? mapper(
+          rightMin,
+          rightMax,
+          els.rightScale.value,
+          margin.top,
+          margin.top + ph,
+          true
+        )
+      : null;
+
+    els.plot.innerHTML = '';
+
+    const xTicks = makeTicks(xMin, xMax, els.xScale.value);
+    const leftTicks = makeTicks(leftMin, leftMax, els.leftScale.value);
+    const rightTicks = currentDualAxis
+      ? makeTicks(rightMin, rightMax, els.rightScale.value)
+      : [];
+
+    for (const v of xTicks) {
+      const x = xMap(v);
+
+      els.plot.appendChild(svgEl('line', {
+        x1:x,
+        x2:x,
+        y1:margin.top,
+        y2:margin.top + ph,
+        class:'grid-line'
+      }));
+
+      const t = svgEl('text', {
+        x,
+        y:margin.top + ph + 23,
+        'text-anchor':'middle',
+        class:'tick-text'
+      });
+
+      t.textContent = formatNumber(v, 4);
+      els.plot.appendChild(t);
+    }
+
+    for (const v of leftTicks) {
+      const y = leftMap(v);
+
+      els.plot.appendChild(svgEl('line', {
+        x1:margin.left,
+        x2:margin.left + pw,
+        y1:y,
+        y2:y,
+        class:'grid-line'
+      }));
+
+      const t = svgEl('text', {
+        x:margin.left - 12,
+        y:y + 4,
+        'text-anchor':'end',
+        class:'tick-text'
+      });
+
+      t.textContent = formatNumber(v, 4);
+      els.plot.appendChild(t);
+    }
+
+    if (currentDualAxis) {
+      for (const v of rightTicks) {
+        const y = rightMap(v);
+
+        const t = svgEl('text', {
+          x:margin.left + pw + 12,
+          y:y + 4,
+          'text-anchor':'start',
+          class:'tick-text'
+        });
+
+        t.textContent = formatNumber(v, 4);
+        els.plot.appendChild(t);
+      }
+    }
+
+    els.plot.appendChild(svgEl('line', {
+      x1:margin.left,
+      x2:margin.left + pw,
+      y1:margin.top + ph,
+      y2:margin.top + ph,
+      class:'axis-line'
+    }));
+
+    els.plot.appendChild(svgEl('line', {
+      x1:margin.left,
+      x2:margin.left,
+      y1:margin.top,
+      y2:margin.top + ph,
+      class:'axis-line'
+    }));
+
+    if (currentDualAxis) {
+      els.plot.appendChild(svgEl('line', {
+        x1:margin.left + pw,
+        x2:margin.left + pw,
+        y1:margin.top,
+        y2:margin.top + ph,
+        class:'axis-line'
+      }));
+    }
+
+    const xLabels = {
+      certainty:'Desired reliability',
+      error:'Allowed error',
+      tau:'Tau'
+    };
+
+    const xLabel = svgEl('text', {
+      x:margin.left + pw / 2,
+      y:H - 20,
+      'text-anchor':'middle',
+      class:'axis-label'
+    });
+
+    xLabel.textContent = xLabels[mode];
+    els.plot.appendChild(xLabel);
+
+    const leftLabel = svgEl('text', {
+      x:24,
+      y:margin.top + ph / 2,
+      transform:`rotate(-90 24 ${margin.top + ph / 2})`,
+      'text-anchor':'middle',
+      class:'axis-label'
+    });
+
+    leftLabel.textContent = 'Expected pre-cascade votes, E[T]';
+    els.plot.appendChild(leftLabel);
+
+    if (currentDualAxis) {
+      const rightLabel = svgEl('text', {
+        x:W - 22,
+        y:margin.top + ph / 2,
+        transform:`rotate(90 ${W - 22} ${margin.top + ph / 2})`,
+        'text-anchor':'middle',
+        class:'axis-label'
+      });
+
+      rightLabel.textContent = 'Maximum permissible tau';
+      els.plot.appendChild(rightLabel);
+    }
+
+    currentSeries.forEach((s, i) => {
+      const color = colorFor(i, currentSeries.length);
+
+      let dEt = '';
+      let dTau = '';
+
+      s.rows.forEach((r, j) => {
+        const x = xMap(r.x);
+
+        dEt += `${j === 0 ? 'M' : 'L'}${x.toFixed(2)},${leftMap(r.expected).toFixed(2)} `;
+
+        if (currentDualAxis) {
+          dTau += `${j === 0 ? 'M' : 'L'}${x.toFixed(2)},${rightMap(r.tauMax).toFixed(2)} `;
+        }
+      });
+
+      const etPath = svgEl('path', {
+        d:dEt,
+        class:'series-line',
+        stroke:color,
+        'data-key':lineKey('et', i)
+      });
+
+      els.plot.appendChild(etPath);
+
+      if (currentDualAxis) {
+        const tauPath = svgEl('path', {
+          d:dTau,
+          class:'series-line',
+          stroke:color,
+          'stroke-dasharray':'8 6',
+          opacity:'0.92',
+          'data-key':lineKey('tau', i)
+        });
+
+        els.plot.appendChild(tauPath);
+      }
+    });
+
+    renderResultsTable();
+    updateLineEmphasis();
+
+    function nearestRow(clientX, clientY) {
+      const rect = els.plot.getBoundingClientRect();
+
+      const sx = W / rect.width;
+      const sy = H / rect.height;
+
+      const px = (clientX - rect.left) * sx;
+      const py = (clientY - rect.top) * sy;
+
+      let best = null;
+      let bestDist = Infinity;
+
+      currentSeries.forEach((s, si) => {
+        s.rows.forEach(r => {
+          const x = xMap(r.x);
+
+          const d1 = (x - px) ** 2 + (leftMap(r.expected) - py) ** 2;
+
+          if (d1 < bestDist) {
+            bestDist = d1;
+            best = { r, key:lineKey('et', si) };
+          }
+
+          if (currentDualAxis) {
+            const d2 = (x - px) ** 2 + (rightMap(r.tauMax) - py) ** 2;
+
+            if (d2 < bestDist) {
+              bestDist = d2;
+              best = { r, key:lineKey('tau', si) };
+            }
+          }
+        });
+      });
+
+      return bestDist < 1000 ? best : null;
+    }
+
+    els.plot.onmousemove = evt => {
+      const hit = nearestRow(evt.clientX, evt.clientY);
+
+      if (!hit) {
+        els.tooltip.style.display = 'none';
+        return;
+      }
+
+      const r = hit.r;
+
+      let html = `
+        <strong>q = ${formatNumber(r.q, 7)}</strong><br>
+        <span class="muted">${xLabels[mode]}:</span> ${formatNumber(r.x, 7)}<br>
+        <span class="muted">Barrier d*:</span> ${r.d.toLocaleString()}<br>
+        <span class="muted">Reliability:</span> ${formatNumber(r.attained, 7)}<br>
+        <span class="muted">Expected pre-cascade votes E[T]:</span> ${formatNumber(r.expected, 7)}
+      `;
+
+      if (mode === 'tau') {
+        html += `<br><span class="muted">Tau:</span> ${formatNumber(r.tauInput, 7)}`;
+      } else {
+        html += `
+          <br><span class="muted">Maximum permissible tau:</span> ${formatNumber(r.tauMax, 7)}
+          <br><span class="muted">Tau interval for this barrier:</span> (${formatNumber(r.tauLow, 7)}, ${formatNumber(r.tauHigh, 7)}]
+        `;
+      }
+
+      els.tooltip.innerHTML = html;
+
+      const shellRect = els.plot.parentElement.getBoundingClientRect();
+
+      els.tooltip.style.display = 'block';
+      els.tooltip.style.left = `${clamp(evt.clientX - shellRect.left + 14, 6, shellRect.width - 360)}px`;
+      els.tooltip.style.top = `${clamp(evt.clientY - shellRect.top + 14, 6, shellRect.height - 180)}px`;
+    };
+
+    els.plot.onmouseleave = () => {
+      els.tooltip.style.display = 'none';
+    };
+  }
+
+  function updateModeDefaults() {
+    const mode = els.xMode.value;
+    const dual = mode !== 'tau';
+
+    els.rightScale.disabled = !dual;
+    els.rightScaleField.style.opacity = dual ? '1' : '0.45';
+
+    resetSelections();
+
+    if (mode === 'certainty') {
+      els.xMin.value = '0.5001';
+      els.xMax.value = '0.9999';
+      els.xScale.value = 'linear';
+    } else if (mode === 'error') {
+      els.xMin.value = '0.0001';
+      els.xMax.value = '0.4999';
+      els.xScale.value = 'log';
+    } else {
+      els.xMin.value = '0.001';
+      els.xMax.value = '1';
+      els.xScale.value = 'log';
+    }
+
+    render();
+  }
+
+  function slug(s) {
+    return String(s)
+      .replace(/[^a-zA-Z0-9._-]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+  }
+
+  function filenameBase() {
+    const modeMap = {
+      certainty:'reliability',
+      error:'error',
+      tau:'tau'
+    };
+
+    const qMode = els.qMode.value;
+
+    const qDesc = qMode === 'custom'
+      ? `qcustom_${slug(els.qCustom.value)}`
+      : `q${slug(els.qMin.value)}-${slug(els.qMax.value)}_${qMode}_n${slug(els.qCount.value)}`;
+
+    const axisDesc = els.xMode.value === 'tau'
+      ? `x${els.xScale.value}_ET${els.leftScale.value}`
+      : `x${els.xScale.value}_ET${els.leftScale.value}_tau${els.rightScale.value}`;
+
+    return `ETcalculator_${modeMap[els.xMode.value]}_${slug(els.xMin.value)}-${slug(els.xMax.value)}_${qDesc}_${axisDesc}`;
+  }
+
+  function downloadBlob(content, mime, filename) {
+    const blob = content instanceof Blob
+      ? content
+      : new Blob([content], { type:mime });
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+
+    a.href = url;
+    a.download = filename;
+
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    URL.revokeObjectURL(url);
+  }
+
+  function exportPNG() {
+    const svgNode = els.plot.cloneNode(true);
+    svgNode.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+    // Export the currently visible emphasis state.
+    const style = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+
+    style.textContent = `
+      .axis-line{stroke:#6f7680;stroke-width:1}
+      .grid-line{stroke:#e7eaf0;stroke-width:1}
+      .tick-text,.axis-label{fill:#5f6670;font-family:system-ui,sans-serif;font-size:12px}
+      .axis-label{font-size:13px;font-weight:600}
+      .series-line{fill:none;stroke-width:2.2}
+      .series-line.is-dimmed{stroke:#b8bec7!important;opacity:.12}
+      .series-line.is-hidden{opacity:0}
+      .series-line.is-emphasized{opacity:1;stroke-width:2.8}
+    `;
+
+    svgNode.prepend(style);
+
+    const svgString = new XMLSerializer().serializeToString(svgNode);
+
+    const blob = new Blob(
+      [svgString],
+      { type:'image/svg+xml;charset=utf-8' }
+    );
+
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+
+      canvas.width = 2080;
+      canvas.height = 1240;
+
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      canvas.toBlob(png => {
+        downloadBlob(
+          png,
+          'image/png',
+          filenameBase() + '.png'
+        );
+
+        URL.revokeObjectURL(url);
+      }, 'image/png');
+    };
+
+    img.src = url;
+  }
+
+  els.pngBtn.addEventListener('click', exportPNG);
+
+  els.csvBtn.addEventListener('click', () => {
+    if (!currentSeries.length) return;
+
+    const rows = [
+      'q,x,d_star,reliability,tau_input,tau_max,tau_low_open,tau_high_closed,expected_T'
+    ];
+
+    currentSeries.forEach(s => {
+      s.rows.forEach(r => {
+        rows.push([
+          r.q,
+          r.x,
+          r.d,
+          r.attained,
+          r.tauInput === null ? '' : r.tauInput,
+          r.tauMax,
+          r.tauLow,
+          r.tauHigh,
+          r.expected
+        ].join(','));
+      });
+    });
+
+    downloadBlob(
+      rows.join('\n'),
+      'text/csv',
+      filenameBase() + '.csv'
+    );
+  });
+
+  els.drawBtn.addEventListener('click', render);
+
+  els.xMode.addEventListener('change', updateModeDefaults);
+
+  els.qMode.addEventListener('change', () => {
+    els.customRow.hidden = els.qMode.value !== 'custom';
+    resetSelections();
+    render();
+  });
+
+  [
+    els.xScale,
+    els.leftScale,
+    els.rightScale,
+    els.qMin,
+    els.qMax,
+    els.qCount,
+    els.qCustom,
+    els.xMin,
+    els.xMax,
+    els.points
+  ].forEach(el => {
+    el.addEventListener('change', () => {
+      resetSelections();
+      render();
+    });
+  });
+
+  els.vizRegion.addEventListener('dblclick', evt => {
+    evt.preventDefault();
+    resetSelections();
+  });
+
+  updateModeDefaults();
+})();
+</script>
+</body>
+</html>
