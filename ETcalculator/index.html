@@ -358,11 +358,11 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="version">v0.3</div>
+  <div class="version">v0.4</div>
   <h1>Wise Cascade Time Calculator</h1>
 
-  <p class="desc">The Wise Cascades Theorem says that for any problem, q, there exist a level of tau and N which guarantee the community will enter an information cascade with the correct answer with arbitrarily high reliability.</p>
-  <p class="desc">This app shows what level of tau is required to achieve the desired level of reliability, and as a result, how many agents are expected to be required before an information cascade begins.</p>
+  <p class="desc">The Wise Cascades Theorem says that for any problem, q, there exist a level of τ and N which guarantee the community will enter an information cascade with the correct answer with arbitrarily high reliability.</p>
+  <p class="desc">This app shows what level of τ is required to achieve the desired level of reliability, and as a result, how many agents are expected to be required before an information cascade begins.</p>
 
   <section class="controls" aria-label="Plot controls">
     <div class="axis-controls">
@@ -385,10 +385,10 @@
         </div>
 
         <div class="field" id="rightScaleField">
-          <label for="rightScale">Y-axis (right): tau</label>
+          <label for="rightScale">Y-axis (right): τ</label>
           <select id="rightScale">
-            <option value="linear" selected>Linear</option>
-            <option value="log">Logarithmic</option>
+            <option value="linear">Linear</option>
+            <option value="log" selected>Logarithmic</option>
           </select>
         </div>
       </div>
@@ -403,7 +403,7 @@
           <select id="xMode">
             <option value="certainty">Desired reliability</option>
             <option value="error">Allowed error</option>
-            <option value="tau">Tau</option>
+            <option value="tau">τ</option>
           </select>
         </div>
 
@@ -1024,7 +1024,7 @@
 
       tauRow = `
         <tr>
-          <th class="row-head interactive" data-target="row-tau">tau</th>
+          <th class="row-head interactive" data-target="row-tau">τ</th>
           ${tauCells}
         </tr>
       `;
@@ -1238,7 +1238,7 @@
     const xLabels = {
       certainty:'Desired reliability',
       error:'Allowed error',
-      tau:'Tau'
+      tau:'τ'
     };
 
     const xLabel = svgEl('text', {
@@ -1271,7 +1271,7 @@
         class:'axis-label'
       });
 
-      rightLabel.textContent = 'Maximum permissible tau';
+      rightLabel.textContent = 'Maximum permissible τ';
       els.plot.appendChild(rightLabel);
     }
 
@@ -1373,11 +1373,11 @@
       `;
 
       if (mode === 'tau') {
-        html += `<br><span class="muted">Tau:</span> ${formatNumber(r.tauInput, 7)}`;
+        html += `<br><span class="muted">τ:</span> ${formatNumber(r.tauInput, 7)}`;
       } else {
         html += `
-          <br><span class="muted">Maximum permissible tau:</span> ${formatNumber(r.tauMax, 7)}
-          <br><span class="muted">Tau interval for this barrier:</span> (${formatNumber(r.tauLow, 7)}, ${formatNumber(r.tauHigh, 7)}]
+          <br><span class="muted">Maximum permissible τ:</span> ${formatNumber(r.tauMax, 7)}
+          <br><span class="muted">τ interval for this barrier:</span> (${formatNumber(r.tauLow, 7)}, ${formatNumber(r.tauHigh, 7)}]
         `;
       }
 
@@ -1470,6 +1470,15 @@
     const svgNode = els.plot.cloneNode(true);
     svgNode.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
 
+    const baseWidth = 1040;
+    const baseHeight = 620;
+    const legendRows = currentDualAxis ? 2 : 1;
+    const legendHeight = currentDualAxis ? 108 : 68;
+    const exportHeight = baseHeight + legendHeight;
+
+    svgNode.setAttribute('viewBox', `0 0 ${baseWidth} ${exportHeight}`);
+    svgNode.setAttribute('height', exportHeight);
+
     // Export the currently visible emphasis state.
     const style = document.createElementNS('http://www.w3.org/2000/svg', 'style');
 
@@ -1482,9 +1491,89 @@
       .series-line.is-dimmed{stroke:#b8bec7!important;opacity:.12}
       .series-line.is-hidden{opacity:0}
       .series-line.is-emphasized{opacity:1;stroke-width:2.8}
+      .export-legend-text{fill:#17191c;font-family:system-ui,sans-serif;font-size:10px}
+      .export-legend-label{fill:#17191c;font-family:system-ui,sans-serif;font-size:11px;font-weight:600}
+      .export-legend-rule{stroke:#d8dde4;stroke-width:1}
     `;
 
     svgNode.prepend(style);
+
+    // Add a legend only to the exported image. The live app continues to use the interactive table.
+    const legendGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    legendGroup.setAttribute('class', 'export-legend');
+
+    const separator = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    separator.setAttribute('x1', '72');
+    separator.setAttribute('x2', String(baseWidth - 40));
+    separator.setAttribute('y1', String(baseHeight + 8));
+    separator.setAttribute('y2', String(baseHeight + 8));
+    separator.setAttribute('class', 'export-legend-rule');
+    legendGroup.appendChild(separator);
+
+    const state = selectionMode();
+
+    function lineIsVisible(key) {
+      return state.mode === 'all' || state.active.has(key);
+    }
+
+    function compactQLegend(q) {
+      let s = Number(q.toPrecision(5)).toString();
+      if (s.startsWith('0.')) s = s.slice(1);
+      return `q=${s}`;
+    }
+
+    function addLegendRow(kind, rowLabel, y, dashed) {
+      const visible = currentSeries
+        .map((s, i) => ({ s, i, key: lineKey(kind, i) }))
+        .filter(item => lineIsVisible(item.key));
+
+      if (!visible.length) return;
+
+      const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      label.setAttribute('x', '72');
+      label.setAttribute('y', String(y + 4));
+      label.setAttribute('class', 'export-legend-label');
+      label.textContent = rowLabel;
+      legendGroup.appendChild(label);
+
+      const startX = 126;
+      const endX = baseWidth - 34;
+      const itemWidth = (endX - startX) / visible.length;
+
+      visible.forEach((item, j) => {
+        const x = startX + j * itemWidth;
+        const color = colorFor(item.i, currentSeries.length);
+
+        const sample = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        sample.setAttribute('x1', String(x));
+        sample.setAttribute('x2', String(x + 14));
+        sample.setAttribute('y1', String(y));
+        sample.setAttribute('y2', String(y));
+        sample.setAttribute('stroke', color);
+        sample.setAttribute('stroke-width', '2.4');
+
+        if (dashed) {
+          sample.setAttribute('stroke-dasharray', '5 4');
+        }
+
+        legendGroup.appendChild(sample);
+
+        const qText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        qText.setAttribute('x', String(x + 18));
+        qText.setAttribute('y', String(y + 4));
+        qText.setAttribute('class', 'export-legend-text');
+        qText.textContent = compactQLegend(item.s.q);
+        legendGroup.appendChild(qText);
+      });
+    }
+
+    addLegendRow('et', 'E[T]', baseHeight + 36, false);
+
+    if (currentDualAxis) {
+      addLegendRow('tau', 'τ', baseHeight + 76, true);
+    }
+
+    svgNode.appendChild(legendGroup);
 
     const svgString = new XMLSerializer().serializeToString(svgNode);
 
@@ -1497,17 +1586,24 @@
     const img = new Image();
 
     img.onload = () => {
+      const scale = 2;
       const canvas = document.createElement('canvas');
 
-      canvas.width = 2080;
-      canvas.height = 1240;
+      canvas.width = baseWidth * scale;
+      canvas.height = exportHeight * scale;
 
       const ctx = canvas.getContext('2d');
 
       ctx.fillStyle = '#fff';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      ctx.drawImage(
+        img,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      );
 
       canvas.toBlob(png => {
         downloadBlob(
@@ -1529,7 +1625,7 @@
     if (!currentSeries.length) return;
 
     const rows = [
-      'q,x,d_star,reliability,tau_input,tau_max,tau_low_open,tau_high_closed,expected_T'
+      'q,x,d_star,reliability,τ_input,τ_max,τ_low_open,τ_high_closed,expected_T'
     ];
 
     currentSeries.forEach(s => {
